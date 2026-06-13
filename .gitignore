@@ -12,3 +12,22 @@ Desktop.ini
 *.njsproj
 *.sln
 *.sw?
+
+# ── Backend ───────────────────────────────────────────────────────────────────
+backend/target/
+*.class
+*.jar
+*.war
+
+# ── Frontend ──────────────────────────────────────────────────────────────────
+frontend/node_modules/
+frontend/dist/
+frontend/.env.local
+frontend/.env.*.local
+
+# ── Environment / secrets ─────────────────────────────────────────────────────
+.env
+.env.*
+!.env.development
+!**/.env.development
+!.env.example

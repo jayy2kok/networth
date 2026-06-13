@@ -1,0 +1,28 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: networth-backend
+  data:
+    mongodb:
+      uri: ${MONGO_URI:mongodb://localhost:27017/networth}
+  jackson:
+    default-property-inclusion: non_null
+    serialization:
+      indent-output: false
+      write-dates-as-timestamps: false
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    try-it-out-enabled: true
+    operations-sorter: alpha
+    tags-sorter: alpha
+  api-docs:
+    path: /v3/api-docs
+
+logging:
+  level:
+    com.networth: DEBUG
+    org.springframework.data.mongodb: INFO
