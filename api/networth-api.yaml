@@ -726,6 +726,7 @@ paths:
   /api/auth/google:
     get:
       tags: [Authentication]
+      operationId: initiateGoogleLogin
       summary: Initiate Google OAuth login
       description: Redirects the user to Google's OAuth 2.0 consent screen.
       security: []
@@ -741,6 +742,7 @@ paths:
   /api/auth/google/callback:
     get:
       tags: [Authentication]
+      operationId: googleOAuthCallback
       summary: Google OAuth callback
       description: |
         Google redirects here after user grants consent.
@@ -774,6 +776,7 @@ paths:
   /api/auth/logout:
     post:
       tags: [Authentication]
+      operationId: logout
       summary: Logout
       description: Invalidates the current JWT session.
       responses:
@@ -785,6 +788,7 @@ paths:
   /api/auth/me:
     get:
       tags: [Authentication]
+      operationId: getCurrentUser
       summary: Get current authenticated user
       description: Returns the profile of the currently authenticated user based on the JWT token.
       responses:
@@ -801,6 +805,7 @@ paths:
   /api/users/profile:
     get:
       tags: [User Profile]
+      operationId: getUserProfile
       summary: Get user profile
       description: Returns the user's profile including first name, last name, DOB, and email.
       responses:
@@ -815,6 +820,7 @@ paths:
 
     put:
       tags: [User Profile]
+      operationId: updateUserProfile
       summary: Update user profile
       description: Update first name, last name, and date of birth. Email and Google ID cannot be changed.
       requestBody:
@@ -838,6 +844,7 @@ paths:
   /api/users/settings:
     put:
       tags: [User Profile]
+      operationId: updateUserSettings
       summary: Update user settings and personal info
       description: |
         Update user preferences and personal financial info in a single call.
@@ -865,6 +872,7 @@ paths:
   /api/profile:
     get:
       tags: [Financial Profile]
+      operationId: getFinancialProfile
       summary: Get full financial profile
       description: |
         Returns the complete financial profile for the authenticated user,
@@ -885,6 +893,7 @@ paths:
   /api/profile/investments:
     post:
       tags: [Investments]
+      operationId: createInvestment
       summary: Add a new investment
       description: Add a new investment instrument to the financial profile.
       requestBody:
@@ -917,6 +926,7 @@ paths:
 
     put:
       tags: [Investments]
+      operationId: updateInvestment
       summary: Update an investment
       description: Update an existing investment by its UUID.
       requestBody:
@@ -941,6 +951,7 @@ paths:
 
     delete:
       tags: [Investments]
+      operationId: deleteInvestment
       summary: Delete an investment
       description: Remove an investment from the financial profile.
       responses:
@@ -955,6 +966,7 @@ paths:
   /api/profile/assets:
     post:
       tags: [Assets]
+      operationId: createAsset
       summary: Add a new physical asset
       description: Add a new physical asset (real estate, vehicle, jewelry, etc.).
       requestBody:
@@ -987,6 +999,7 @@ paths:
 
     put:
       tags: [Assets]
+      operationId: updateAsset
       summary: Update a physical asset
       description: Update an existing physical asset. percentChange is auto-recomputed.
       requestBody:
@@ -1011,6 +1024,7 @@ paths:
 
     delete:
       tags: [Assets]
+      operationId: deleteAsset
       summary: Delete a physical asset
       description: Remove a physical asset from the financial profile.
       responses:
@@ -1025,6 +1039,7 @@ paths:
   /api/profile/liabilities:
     post:
       tags: [Liabilities]
+      operationId: createLiability
       summary: Add a new liability
       description: Add a new loan or liability (home loan, personal loan, credit card, etc.).
       requestBody:
@@ -1057,6 +1072,7 @@ paths:
 
     put:
       tags: [Liabilities]
+      operationId: updateLiability
       summary: Update a liability
       description: Update an existing liability by its UUID.
       requestBody:
@@ -1081,6 +1097,7 @@ paths:
 
     delete:
       tags: [Liabilities]
+      operationId: deleteLiability
       summary: Delete a liability
       description: Remove a liability from the financial profile.
       responses:
@@ -1095,6 +1112,7 @@ paths:
   /api/profile/incomes:
     post:
       tags: [Income]
+      operationId: createIncome
       summary: Add an income source
       description: Add a new income source (salary, rental, business, dividend, etc.) to the financial profile.
       requestBody:
@@ -1127,6 +1145,7 @@ paths:
 
     put:
       tags: [Income]
+      operationId: updateIncome
       summary: Update an income source
       description: Update an existing income source by its UUID.
       requestBody:
@@ -1151,6 +1170,7 @@ paths:
 
     delete:
       tags: [Income]
+      operationId: deleteIncome
       summary: Delete an income source
       description: Remove an income source from the financial profile.
       responses:
@@ -1165,6 +1185,7 @@ paths:
   /api/profile/expenses:
     post:
       tags: [Expenses]
+      operationId: createExpense
       summary: Add a new expense item
       description: Add a new expense item categorized as NEED, WANT, or SAVINGS.
       requestBody:
@@ -1197,6 +1218,7 @@ paths:
 
     put:
       tags: [Expenses]
+      operationId: updateExpense
       summary: Update an expense item
       description: Update an existing expense item.
       requestBody:
@@ -1221,6 +1243,7 @@ paths:
 
     delete:
       tags: [Expenses]
+      operationId: deleteExpense
       summary: Delete an expense item
       description: Remove an expense item from the financial profile.
       responses:
@@ -1235,6 +1258,7 @@ paths:
   /api/dashboard/summary:
     get:
       tags: [Dashboard]
+      operationId: getDashboardSummary
       summary: Get dashboard summary
       description: |
         Returns the computed financial summary for the authenticated user, including:
@@ -1264,6 +1288,7 @@ paths:
   /api/snapshots:
     post:
       tags: [Snapshots]
+      operationId: createSnapshot
       summary: Take a snapshot
       description: |
         Captures the current financial state as a point-in-time snapshot.
@@ -1280,6 +1305,7 @@ paths:
 
     get:
       tags: [Snapshots]
+      operationId: getSnapshots
       summary: Get all snapshots
       description: |
         Returns all historical snapshots for the authenticated user,
@@ -1316,6 +1342,7 @@ paths:
   /api/snapshots/latest:
     get:
       tags: [Snapshots]
+      operationId: getLatestSnapshot
       summary: Get latest snapshot
       description: Returns the most recent snapshot for the authenticated user.
       responses:
