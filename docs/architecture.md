@@ -1053,30 +1053,52 @@ ENTRYPOINT ["java", "-jar", "app.jar"]
 
 ## 13. Phased Implementation Plan
 
-### Phase 1 — Foundation (Backend + Auth + Basic Frontend)
+> [!IMPORTANT]
+> **Security is deferred to Phase 5.** Until then, the app operates with a single hardcoded dummy user — no login screen, no JWT, no OAuth. All APIs assume this dummy user and skip authentication. This lets the team build and validate all core features without auth complexity.
 
-1. Initialize Spring Boot project with MongoDB, Security, OAuth2
-2. Implement User model (with firstName, lastName, DOB), Google OAuth login flow, JWT
-3. Initialize React (Vite) project with Tailwind CSS v4 and design tokens
-4. Build Login page with Google Sign-In
-5. Set up Docker Compose with all 3 services
-6. Verify end-to-end: Login → JWT → Protected API call
+### Dummy User Strategy (Phases 1–4)
+
+- On first startup, a seed script (or `ApplicationRunner`) creates a default user in MongoDB:
+  ```json
+  {
+    "googleId": "dummy-local-dev",
+    "email": "dev@networth.local",
+    "firstName": "Dev",
+    "lastName": "User",
+    "settings": { "currencyCode": "INR", "retirementAge": 60, "expectedReturnRate": 12.0, "inflationRate": 6.0 }
+  }
+  ```
+- A `DummyUserFilter` (or Spring interceptor) injects this user into the `SecurityContext` / request attribute for every request — no token required.
+- Frontend skips login page and lands directly on Dashboard.
+- Phase 5 replaces `DummyUserFilter` with real `JwtAuthenticationFilter` + OAuth flow.
+
+---
+
+### Phase 1 — Foundation (Backend + Frontend Skeleton)
+
+1. Initialize Spring Boot project with MongoDB (no Security/OAuth yet)
+2. Auto-generate model classes from `networth-api.yaml` via `openapi-generator-maven-plugin`
+3. Create `User` document + `DummyUserFilter` (seed dummy user on startup)
+4. Initialize React (Vite) project with Tailwind CSS v4 and design tokens
+5. Build app shell: Navbar, Sidebar, routing (no login page)
+6. Set up Docker Compose (frontend + backend + MongoDB)
+7. Verify end-to-end: Frontend → REST API → MongoDB (dummy user, no auth)
 
 ### Phase 2 — Core Data Entry (CRUD)
 
 1. Financial Profile model & repository (all embedded entities)
-2. CRUD APIs for investments, physical assets, liabilities, income, expenses
+2. CRUD APIs for investments, assets, liabilities, incomes, expenses
 3. React forms for each data section (Investments, Assets, Loans, Budget)
 4. Profile page (first name, last name, DOB)
 5. Settings page (personal info, currency, theme)
 
 ### Phase 3 — Dashboard & Calculations
 
-1. CalculationService (net worth, FIRE, runway, category breakdowns)
+1. `CalculationService` (net worth, FIRE, runway, category breakdowns)
 2. Dashboard Summary API
 3. Dashboard page with KPI cards
 4. Charts: Investment Categories Pie, Expense Breakdown Bar, FIRE Gauge
-6. Inline-editable Retirement Age on dashboard
+5. Inline-editable Retirement Age on dashboard
 
 ### Phase 4 — Historical Tracking & Polish
 
@@ -1086,3 +1108,16 @@ ENTRYPOINT ["java", "-jar", "app.jar"]
 4. Light/Dark theme toggle with Tailwind dark mode
 5. Responsive polish for mobile
 6. Error handling, loading states, empty states
+
+### Phase 5 — Google OAuth & Security Integration
+
+1. Add Spring Security + OAuth2 client dependencies
+2. Implement `SecurityConfig.java` (OAuth2 login, JWT filter chain, CORS)
+3. Implement `JwtTokenProvider`, `JwtAuthenticationFilter`, `OAuth2SuccessHandler`
+4. Replace `DummyUserFilter` with real JWT auth filter
+5. Build Login page with Google Sign-In button
+6. Wire callback flow: Google → backend → JWT → frontend storage
+7. Add `@AuthenticationPrincipal` to all controllers (replace dummy user injection)
+8. Protect all `/api/**` routes (except `/api/auth/**`)
+9. Test end-to-end: Login → JWT → Protected API → Logout
+10. Remove dummy user seed script and `DummyUserFilter`
