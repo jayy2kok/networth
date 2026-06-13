@@ -782,12 +782,17 @@ Includes an **inline-editable Retirement Age** field for quick adjustments.
 
 ### 9.1 Project Structure
 
+> [!IMPORTANT]
+> The `model/generated/` package is **auto-generated at build time** by the `openapi-generator-maven-plugin` from [`networth-api.yaml`](file:///d:/git/networth/api/networth-api.yaml). These classes are **never hand-edited** — they live under `target/generated-sources/` and are added to the compile source root automatically. Each hand-written DTO in `model/dto/` **extends** its generated counterpart to layer on persistence annotations (e.g., `@Document`, `@Id`), computed fields, and MongoDB-specific logic.
+
 ```
 backend/
+├── api/
+│   └── networth-api.yaml                  # OpenAPI 3.0 spec (single source of truth)
 ├── src/main/java/com/networth/
 │   ├── NetworthApplication.java
 │   ├── config/
-│   │   ├── SecurityConfig.java          # Spring Security + OAuth2
+│   │   ├── SecurityConfig.java            # Spring Security + OAuth2
 │   │   ├── CorsConfig.java
 │   │   ├── MongoConfig.java
 │   │   └── JwtConfig.java
@@ -800,25 +805,33 @@ backend/
 │   ├── service/
 │   │   ├── AuthService.java
 │   │   ├── ProfileService.java
-│   │   ├── CalculationService.java       # All financial calculations
+│   │   ├── CalculationService.java        # All financial calculations
 │   │   ├── SnapshotService.java
 │   │   └── UserService.java
 │   ├── model/
-│   │   ├── User.java
-│   │   ├── FinancialProfile.java
-│   │   ├── Snapshot.java
-│   │   ├── embedded/
+│   │   ├── generated/                     # ⚡ AUTO-GENERATED — do not edit
 │   │   │   ├── Investment.java
 │   │   │   ├── Asset.java
 │   │   │   ├── Liability.java
 │   │   │   ├── Income.java
-│   │   │   └── Expense.java
-│   │   └── dto/
-│   │       ├── UserProfileDto.java
-│   │       ├── DashboardSummaryDto.java
-│   │       ├── InvestmentDto.java
-│   │       ├── LiabilityDto.java
-│   │       └── ExpenseDto.java
+│   │   │   ├── Expense.java
+│   │   │   ├── UserProfile.java
+│   │   │   ├── UserSettings.java
+│   │   │   ├── FinancialProfile.java
+│   │   │   ├── DashboardSummary.java
+│   │   │   ├── Snapshot.java
+│   │   │   ├── AuthResponse.java
+│   │   │   └── ErrorResponse.java
+│   │   └── dto/                           # Hand-written — extends generated models
+│   │       ├── UserProfileDto.java        # extends generated.UserProfile
+│   │       ├── FinancialProfileDto.java   # extends generated.FinancialProfile
+│   │       ├── InvestmentDto.java         # extends generated.Investment
+│   │       ├── AssetDto.java              # extends generated.Asset
+│   │       ├── LiabilityDto.java          # extends generated.Liability
+│   │       ├── IncomeDto.java             # extends generated.Income
+│   │       ├── ExpenseDto.java            # extends generated.Expense
+│   │       ├── SnapshotDto.java           # extends generated.Snapshot
+│   │       └── DashboardSummaryDto.java   # extends generated.DashboardSummary
 │   ├── repository/
 │   │   ├── UserRepository.java
 │   │   ├── FinancialProfileRepository.java
@@ -837,7 +850,38 @@ backend/
 └── pom.xml
 ```
 
-### 9.2 Key Dependencies (pom.xml)
+#### Code Generation Strategy
+
+| Aspect | Detail |
+|---|---|
+| **Plugin** | `openapi-generator-maven-plugin` (bound to `generate-sources` phase) |
+| **Input** | `${project.basedir}/api/networth-api.yaml` |
+| **Output** | `target/generated-sources/openapi/com/networth/model/generated/` |
+| **Generator** | `java` with `library=native`, `useJakartaEe=true` |
+| **Generated content** | Model classes only (`<generateModels>true</generateModels>`, `<generateApis>false</generateApis>`) |
+| **Inheritance** | Each DTO in `model/dto/` extends its generated equivalent and adds `@Document`, `@Id`, computed fields |
+
+Example DTO extending generated model:
+
+```java
+package com.networth.model.dto;
+
+import com.networth.model.generated.Investment;
+import org.springframework.data.annotation.Id;
+import lombok.*;
+
+@Data
+@EqualsAndHashCode(callSuper = true)
+public class InvestmentDto extends Investment {
+    // All fields (name, investmentType, investedValue, currentValue, etc.)
+    // are inherited from the auto-generated Investment class.
+    // Add only persistence or computed fields here:
+    @Id
+    private String id;
+}
+```
+
+### 9.2 Key Dependencies & Build Plugins (pom.xml)
 
 ```xml
 <!-- Core -->
@@ -856,10 +900,47 @@ io.jsonwebtoken:jjwt-jackson:0.12.x
 org.projectlombok:lombok
 org.springdoc:springdoc-openapi-starter-webmvc-ui  (Swagger UI)
 
+<!-- Code Generation (needed at compile time for generated models) -->
+jackson-databind-nullable              (for OpenAPI nullable fields)
+jakarta.validation:jakarta.validation-api
+jakarta.annotation:jakarta.annotation-api
+
 <!-- Test -->
 spring-boot-starter-test
 de.flapdoodle.embed:de.flapdoodle.embed.mongo.spring3x
 ```
+
+#### OpenAPI Generator Maven Plugin
+
+```xml
+<plugin>
+  <groupId>org.openapitools</groupId>
+  <artifactId>openapi-generator-maven-plugin</artifactId>
+  <version>7.x</version>
+  <executions>
+    <execution>
+      <goals><goal>generate</goal></goals>
+      <configuration>
+        <inputSpec>${project.basedir}/api/networth-api.yaml</inputSpec>
+        <generatorName>java</generatorName>
+        <library>native</library>
+        <generateModels>true</generateModels>
+        <generateApis>false</generateApis>
+        <generateSupportingFiles>false</generateSupportingFiles>
+        <modelPackage>com.networth.model.generated</modelPackage>
+        <configOptions>
+          <useJakartaEe>true</useJakartaEe>
+          <openApiNullable>true</openApiNullable>
+          <serializationLibrary>jackson</serializationLibrary>
+        </configOptions>
+      </configuration>
+    </execution>
+  </executions>
+</plugin>
+```
+
+> [!NOTE]
+> Running `mvn compile` (or any downstream phase) auto-generates model classes into `target/generated-sources/openapi/`. IDE should mark this as a generated-sources root for autocomplete.
 
 ---
 
