@@ -28,8 +28,8 @@ tags:
     description: Core financial data management
   - name: Investments
     description: Investment instruments CRUD
-  - name: Physical Assets
-    description: Real estate and physical assets CRUD
+  - name: Assets
+    description: Real estate and Assets CRUD
   - name: Liabilities
     description: Loans and liabilities CRUD
   - name: Income
@@ -124,67 +124,41 @@ components:
         lastName:
           type: string
           example: "Rajput"
-        dateOfBirth:
-          type: string
-          format: date
-          description: Date of birth in YYYY-MM-DD format
-          example: "1993-05-15"
         avatarUrl:
           type: string
           format: uri
           example: "https://lh3.googleusercontent.com/..."
-        currencyCode:
-          type: string
-          minLength: 3
-          maxLength: 3
-          description: ISO 4217 currency code. Symbol rendering is handled by the frontend.
-          example: "INR"
+        settings:
+          $ref: "#/components/schemas/UserSettings"
         createdAt:
           type: string
           format: date-time
         updatedAt:
           type: string
           format: date-time
-
-    UpdateUserProfileRequest:
+    UserSettings:
       type: object
+      required:
+        - dateOfBirth
       properties:
-        firstName:
-          type: string
-          minLength: 1
-          maxLength: 100
-          example: "Jay"
-        lastName:
-          type: string
-          minLength: 1
-          maxLength: 100
-          example: "Rajput"
         dateOfBirth:
           type: string
           format: date
+          description: Date of birth in YYYY-MM-DD format
           example: "1993-05-15"
-
-    UpdateUserSettingsRequest:
-      type: object
-      properties:
         currencyCode:
           type: string
-          minLength: 3
-          maxLength: 3
+          pattern: ^[A-Z]{3}$
           description: ISO 4217 currency code (e.g. INR, USD, EUR). Symbol rendering handled by frontend CSS/Intl API.
           example: "INR"
-        age:
-          type: integer
-          minimum: 1
-          maximum: 120
-          description: Current age of the user
-          example: 33
+          default: "INR"
         retirementAge:
           type: integer
           minimum: 1
           maximum: 120
           description: Target retirement age
           example: 40
+          default: 60
         expectedReturnRate:
           type: number
           format: double
@@ -192,6 +166,7 @@ components:
           maximum: 100
           description: Expected annual rate of return on investments (%)
           example: 12.0
+          default: 12.0
         inflationRate:
           type: number
           format: double
@@ -199,6 +174,7 @@ components:
           maximum: 100
           description: Expected annual inflation rate (%)
           example: 6.0
+          default: 6.0
 
     # ── Financial Profile ─────────────────────────────────────────────────────
     FinancialProfile:
@@ -214,26 +190,31 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Investment"
-        physicalAssets:
+        assets:
           type: array
           items:
-            $ref: "#/components/schemas/PhysicalAsset"
+            $ref: "#/components/schemas/Asset"
         liabilities:
           type: array
           items:
             $ref: "#/components/schemas/Liability"
-        income:
-          $ref: "#/components/schemas/Income"
+        incomes:
+          type: array
+          items:
+            $ref: "#/components/schemas/Income"
         expenses:
-          $ref: "#/components/schemas/Expenses"
+          type: array
+          items:
+            $ref: "#/components/schemas/Expense"
         updatedAt:
           type: string
           format: date-time
-
+          readOnly: true
 
     # ── Investment ────────────────────────────────────────────────────────────
     Investment:
       type: object
+      required: [name, investmentType, investedValue, currentValue, currency]
       properties:
         id:
           type: string
@@ -243,7 +224,7 @@ components:
         name:
           type: string
           example: "Mutual funds"
-        type:
+        investmentType:
           type: string
           enum:
             - EQUITY
@@ -284,96 +265,24 @@ components:
             type: string
             enum: [METALS, LIQUID, DOMESTIC, INTERNATIONAL]
           description: Investment category this investment belongs to
-          example: ["Equity"]
+          example: ["METALS"]
+        createdAt:
+          type: string
+          format: date-time
+          description: Date and time when the investment was created
+          example: "2023-01-15T10:30:00Z"
+          readOnly: true
+        updatedAt:
+          type: string
+          format: date-time
+          description: Date and time when the investment was last updated
+          example: "2023-01-15T10:30:00Z"
+          readOnly: true
 
-    CreateInvestmentRequest:
+    # ── Asset ────────────────────────────────────────────────────────
+    Asset:
       type: object
-      required: [name, type, investedValue, currentValue, currency, categories]
-      properties:
-        name:
-          type: string
-          minLength: 1
-          maxLength: 200
-          example: "Mutual funds"
-        type:
-          type: string
-          enum:
-            - EQUITY
-            - BONDS
-            - DEBT
-            - ETF
-            - RETIRALS
-            - FIXED_DEPOSITS
-            - CASH_EQUIVALENT
-          example: "EQUITY"
-        investedValue:
-          type: number
-          format: double
-          minimum: 0
-          example: 3059347
-        currentValue:
-          type: number
-          format: double
-          minimum: 0
-          example: 3502997
-        currency:
-          type: string
-          pattern: "^[A-Z]{3}$"
-          description: ISO 4217 currency code (e.g. INR, USD, EUR)
-          example: "INR"
-        categories:
-          type: array
-          items:
-            type: string
-            enum: [METALS, LIQUID, DOMESTIC, INTERNATIONAL]
-          description: Investment categories this investment belongs to
-          example: ["DOMESTIC", "LIQUID"]
-
-    UpdateInvestmentRequest:
-      type: object
-      properties:
-        name:
-          type: string
-          minLength: 1
-          maxLength: 200
-          example: "Mutual funds"
-        type:
-          type: string
-          enum:
-            - EQUITY
-            - BONDS
-            - DEBT
-            - ETF
-            - RETIRALS
-            - FIXED_DEPOSITS
-            - CASH_EQUIVALENT
-          example: "EQUITY"
-        investedValue:
-          type: number
-          format: double
-          minimum: 0
-          example: 3100000
-        currentValue:
-          type: number
-          format: double
-          minimum: 0
-          example: 3600000
-        currency:
-          type: string
-          pattern: "^[A-Z]{3}$"
-          description: ISO 4217 currency code (e.g. INR, USD, EUR)
-          example: "INR"
-        categories:
-          type: array
-          items:
-            type: string
-            enum: [METALS, LIQUID, DOMESTIC, INTERNATIONAL]
-          description: Investment categories this investment belongs to
-          example: ["DOMESTIC", "LIQUID"]
-
-    # ── Physical Asset ────────────────────────────────────────────────────────
-    PhysicalAsset:
-      type: object
+      required: [name, type, currentValue, currency]
       properties:
         id:
           type: string
@@ -396,81 +305,45 @@ components:
           type: number
           format: double
           minimum: 0
-          description: Original purchase price
+          description: Original purchase price, Optional if not provided default to currentValue (as on the date of creation)
           example: 4600000
-        marketValue:
+        currentValue:
           type: number
           format: double
           minimum: 0
           description: Current estimated market value
           example: 7500000
+        currentValueINR:
+          type: number
+          format: double
+          readOnly: true
+          minimum: 0
+          description: Current estimated market value INR
+          example: 7500000
+        currency:
+          type: string
+          pattern: "^[A-Z]{3}$"
+          description: ISO 4217 currency code (e.g. INR, USD, EUR).
+          example: "INR"
         percentChange:
           type: number
           format: double
           readOnly: true
           description: Computed appreciation percentage ((marketValue - acquisitionCost) / acquisitionCost * 100)
           example: 63.0
-
-    CreatePhysicalAssetRequest:
-      type: object
-      required: [name, type, acquisitionCost, marketValue]
-      properties:
-        name:
+        createdAt:
           type: string
-          minLength: 1
-          maxLength: 200
-          example: "Ganga Kalash (Flat)"
-        type:
+          format: date-time
+          readOnly: true
+        updatedAt:
           type: string
-          enum:
-            - REAL_ESTATE
-            - VEHICLE
-            - JEWELRY
-            - COLLECTIBLE
-            - OTHER
-          example: "REAL_ESTATE"
-        acquisitionCost:
-          type: number
-          format: double
-          minimum: 0
-          example: 4600000
-        marketValue:
-          type: number
-          format: double
-          minimum: 0
-          example: 7500000
-
-    UpdatePhysicalAssetRequest:
-      type: object
-      properties:
-        name:
-          type: string
-          minLength: 1
-          maxLength: 200
-          example: "Ganga Kalash (Flat)"
-        type:
-          type: string
-          enum:
-            - REAL_ESTATE
-            - VEHICLE
-            - JEWELRY
-            - COLLECTIBLE
-            - OTHER
-          example: "REAL_ESTATE"
-        acquisitionCost:
-          type: number
-          format: double
-          minimum: 0
-          example: 4600000
-        marketValue:
-          type: number
-          format: double
-          minimum: 0
-          example: 8000000
+          format: date-time
+          readOnly: true
 
     # ── Liability ─────────────────────────────────────────────────────────────
     Liability:
       type: object
+      required: [name, type, outstandingAmount, currency]
       properties:
         id:
           type: string
@@ -532,238 +405,74 @@ components:
           minimum: 0
           description: Number of EMIs remaining
           example: 233
-
-    CreateLiabilityRequest:
-      type: object
-      required: [name, type, outstandingAmount, emi, roi, loanType]
-      properties:
-        name:
+          readOnly: true
+        createdAt:
           type: string
-          minLength: 1
-          maxLength: 200
-          example: "BoI Home Loan"
-        type:
+          format: date-time
+          description: Date and time when the liability was created
+          example: "2023-01-15T10:30:00Z"
+          readOnly: true
+        updatedAt:
           type: string
-          enum:
-            - HOME_LOAN
-            - PERSONAL_LOAN
-            - CAR_LOAN
-            - CREDIT_CARD
-            - STUDENT_LOAN
-            - OTHER
-          example: "HOME_LOAN"
-        outstandingAmount:
-          type: number
-          format: double
-          minimum: 0
-          example: 9650297
-        emi:
-          type: number
-          format: double
-          minimum: 0
-          example: 76432
-        roi:
-          type: number
-          format: double
-          minimum: 0
-          maximum: 100
-          example: 7.1
-        loanType:
-          type: string
-          enum: [OD, REGULAR]
-          example: "OD"
-        firstEmiDate:
-          type: string
-          format: date
-          nullable: true
-          example: "2025-11-21"
-        tenureYears:
-          type: integer
-          nullable: true
-          minimum: 1
-          example: 20
-        remainingEmis:
-          type: integer
-          nullable: true
-          minimum: 0
-          example: 233
-
-    UpdateLiabilityRequest:
-      type: object
-      properties:
-        name:
-          type: string
-          minLength: 1
-          maxLength: 200
-          example: "BoI Home Loan"
-        type:
-          type: string
-          enum:
-            - HOME_LOAN
-            - PERSONAL_LOAN
-            - CAR_LOAN
-            - CREDIT_CARD
-            - STUDENT_LOAN
-            - OTHER
-          example: "HOME_LOAN"
-        outstandingAmount:
-          type: number
-          format: double
-          minimum: 0
-          example: 9500000
-        emi:
-          type: number
-          format: double
-          minimum: 0
-          example: 76432
-        roi:
-          type: number
-          format: double
-          minimum: 0
-          maximum: 100
-          example: 7.1
-        loanType:
-          type: string
-          enum: [OD, REGULAR]
-          example: "OD"
-        firstEmiDate:
-          type: string
-          format: date
-          nullable: true
-          example: "2025-11-21"
-        tenureYears:
-          type: integer
-          nullable: true
-          minimum: 1
-          example: 20
-        remainingEmis:
-          type: integer
-          nullable: true
-          minimum: 0
-          example: 230
+          format: date-time
+          description: Date and time when the liability was last updated
+          example: "2023-01-15T10:30:00Z"
+          readOnly: true
 
     # ── Income ────────────────────────────────────────────────────────────────
     Income:
       type: object
+      required: [source, amount, frequency, currency]
       properties:
-        salary:
+        source:
+          type: string
+          enum:
+            - SALARY
+            - BUSINESS
+            - RENTAL
+            - DIVIDEND
+            - INTEREST
+            - OTHER
+          description: "source of income"
+          example: "SALARY"
+        amount:
           type: number
           format: double
           minimum: 0
-          description: Monthly salary
+          description: Income amount
           example: 588260
-        businessIncome:
+        currency:
+          type: string
+          pattern: "^[A-Z]{3}$"
+          description: "ISO 4217 currency code (e.g. INR, USD, EUR)."
+          example: "INR"
+        amountInr:
           type: number
           format: double
           minimum: 0
-          description: Monthly business income
-          example: 0
-        rentalIncome:
-          type: number
-          format: double
-          minimum: 0
-          description: Monthly rental income
-          example: 0
-        otherIncome:
-          type: number
-          format: double
-          minimum: 0
-          description: Monthly other income
-          example: 0
+          readOnly: true
+          description: Income amount INR
+          example: 588260
         frequency:
           type: string
-          enum: [MONTHLY, ANNUAL]
-          description: Whether the amounts above are monthly or annual
+          enum: [MONTHLY, QUARTERLY, HALF_YEARLY, YEARLY, BI_WEEKLY, WEEKLY]
+          description: "Frequency of income"
           example: "MONTHLY"
-
-    UpdateIncomeRequest:
-      type: object
-      required: [salary, frequency]
-      properties:
-        salary:
-          type: number
-          format: double
-          minimum: 0
-          example: 588260
-        businessIncome:
-          type: number
-          format: double
-          minimum: 0
-          example: 0
-        rentalIncome:
-          type: number
-          format: double
-          minimum: 0
-          example: 0
-        otherIncome:
-          type: number
-          format: double
-          minimum: 0
-          example: 0
-        frequency:
+        createdAt:
           type: string
-          enum: [MONTHLY, ANNUAL]
-          example: "MONTHLY"
+          format: date-time
+          readOnly: true
+          description: Date and time when the income was created
+        updatedAt:
+          type: string
+          format: date-time
+          readOnly: true
+          description: Date and time when the income was last updated
 
     # ── Expenses ──────────────────────────────────────────────────────────────
-    Expenses:
+    Expense:
       type: object
-      properties:
-        distribution:
-          $ref: "#/components/schemas/ExpenseDistribution"
-        items:
-          type: array
-          items:
-            $ref: "#/components/schemas/ExpenseItem"
-        actuals:
-          $ref: "#/components/schemas/ExpenseActuals"
-
-    ExpenseDistribution:
-      type: object
-      required: [needPercent, wantPercent, savingsPercent]
-      properties:
-        needPercent:
-          type: integer
-          minimum: 0
-          maximum: 100
-          description: Target percentage for needs
-          example: 65
-        wantPercent:
-          type: integer
-          minimum: 0
-          maximum: 100
-          description: Target percentage for wants
-          example: 15
-        savingsPercent:
-          type: integer
-          minimum: 0
-          maximum: 100
-          description: Target percentage for savings
-          example: 20
-
-    UpdateExpenseDistributionRequest:
-      type: object
-      required: [needPercent, wantPercent, savingsPercent]
-      properties:
-        needPercent:
-          type: integer
-          minimum: 0
-          maximum: 100
-          example: 65
-        wantPercent:
-          type: integer
-          minimum: 0
-          maximum: 100
-          example: 15
-        savingsPercent:
-          type: integer
-          minimum: 0
-          maximum: 100
-          example: 20
-      description: All three percentages must sum to 100.
-
-    ExpenseItem:
-      type: object
+      required: [name, category, amount, frequency, currency]
       properties:
         id:
           type: string
@@ -777,92 +486,40 @@ components:
           type: string
           enum: [NEED, WANT, SAVINGS]
           example: "NEED"
-        monthlyAmount:
+        amount:
+          type: number
+          format: double
+          minimum: 0
+          description: "Amount of the expense"
+          example: 126389
+        frequency:
+          type: string
+          enum: [MONTHLY, QUARTERLY, HALF_YEARLY, YEARLY]
+          description: "Frequency of the expense"
+          example: "MONTHLY"
+        currency:
+          type: string
+          pattern: "^[A-Z]{3}$"
+          description: "ISO 4217 currency code (e.g. INR, USD, EUR)."
+          example: "INR"
+        monthlyAmountINR:
           type: number
           format: double
           minimum: 0
           description: Monthly expense amount (0 if expense is annual-only)
           example: 126389
-        annualAmount:
+          readOnly: true
+        annualAmountINR:
           type: number
           format: double
           minimum: 0
           description: Annual expense amount
           example: 1516660
+          readOnly: true
         isProjected:
           type: boolean
           description: Whether this is a projected (budgeted) expense vs actual
           example: true
-
-    CreateExpenseItemRequest:
-      type: object
-      required: [name, category, monthlyAmount, annualAmount]
-      properties:
-        name:
-          type: string
-          minLength: 1
-          maxLength: 200
-          example: "Home Loan EMI"
-        category:
-          type: string
-          enum: [NEED, WANT, SAVINGS]
-          example: "NEED"
-        monthlyAmount:
-          type: number
-          format: double
-          minimum: 0
-          example: 126389
-        annualAmount:
-          type: number
-          format: double
-          minimum: 0
-          example: 1516660
-        isProjected:
-          type: boolean
-          default: true
-          example: true
-
-    UpdateExpenseItemRequest:
-      type: object
-      properties:
-        name:
-          type: string
-          minLength: 1
-          maxLength: 200
-          example: "Home Loan EMI"
-        category:
-          type: string
-          enum: [NEED, WANT, SAVINGS]
-          example: "NEED"
-        monthlyAmount:
-          type: number
-          format: double
-          minimum: 0
-          example: 130000
-        annualAmount:
-          type: number
-          format: double
-          minimum: 0
-          example: 1560000
-        isProjected:
-          type: boolean
-          example: true
-
-    ExpenseActuals:
-      type: object
-      properties:
-        monthlyTotal:
-          type: number
-          format: double
-          example: 0
-        annualTotal:
-          type: number
-          format: double
-          example: 0
-        items:
-          type: array
-          items:
-            $ref: "#/components/schemas/ExpenseItem"
 
     # ── Dashboard ─────────────────────────────────────────────────────────────
     DashboardSummary:
@@ -951,7 +608,6 @@ components:
           format: double
           description: Total monthly investment amount (from SAVINGS category expenses)
           example: 475818
-
 
     # ── Snapshot ──────────────────────────────────────────────────────────────
     Snapshot:
@@ -1166,7 +822,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UpdateUserProfileRequest"
+              $ref: "#/components/schemas/UserProfile"
       responses:
         "200":
           description: Updated user profile
@@ -1192,14 +848,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UpdateUserSettingsRequest"
+              $ref: "#/components/schemas/UserSettings"
       responses:
         "200":
           description: Updated user profile with new settings
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/UserProfile"
+                $ref: "#/components/schemas/UserSettings"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -1212,7 +868,7 @@ paths:
       summary: Get full financial profile
       description: |
         Returns the complete financial profile for the authenticated user,
-        including investments, physical assets,
+        including investments, Assets,
         liabilities, income, and expenses.
         If no profile exists yet, an empty profile is created and returned.
       responses:
@@ -1225,7 +881,6 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
 
-
   # ── Investments ──────────────────────────────────────────────────────────
   /api/profile/investments:
     post:
@@ -1237,7 +892,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreateInvestmentRequest"
+              $ref: "#/components/schemas/Investment"
       responses:
         "201":
           description: Investment created
@@ -1269,7 +924,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UpdateInvestmentRequest"
+              $ref: "#/components/schemas/Investment"
       responses:
         "200":
           description: Updated investment
@@ -1296,10 +951,10 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
 
-  # ── Physical Assets ─────────────────────────────────────────────────────
-  /api/profile/physical-assets:
+  # ── Assets ─────────────────────────────────────────────────────
+  /api/profile/assets:
     post:
-      tags: [Physical Assets]
+      tags: [Assets]
       summary: Add a new physical asset
       description: Add a new physical asset (real estate, vehicle, jewelry, etc.).
       requestBody:
@@ -1307,20 +962,20 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreatePhysicalAssetRequest"
+              $ref: "#/components/schemas/Asset"
       responses:
         "201":
           description: Physical asset created. percentChange is auto-computed.
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/PhysicalAsset"
+                $ref: "#/components/schemas/Asset"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
 
-  /api/profile/physical-assets/{id}:
+  /api/profile/assets/{id}:
     parameters:
       - name: id
         in: path
@@ -1331,7 +986,7 @@ paths:
         description: Physical asset UUID
 
     put:
-      tags: [Physical Assets]
+      tags: [Assets]
       summary: Update a physical asset
       description: Update an existing physical asset. percentChange is auto-recomputed.
       requestBody:
@@ -1339,14 +994,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UpdatePhysicalAssetRequest"
+              $ref: "#/components/schemas/Asset"
       responses:
         "200":
           description: Updated physical asset
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/PhysicalAsset"
+                $ref: "#/components/schemas/Asset"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -1355,7 +1010,7 @@ paths:
           $ref: "#/components/responses/NotFound"
 
     delete:
-      tags: [Physical Assets]
+      tags: [Assets]
       summary: Delete a physical asset
       description: Remove a physical asset from the financial profile.
       responses:
@@ -1377,7 +1032,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreateLiabilityRequest"
+              $ref: "#/components/schemas/Liability"
       responses:
         "201":
           description: Liability created
@@ -1409,7 +1064,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UpdateLiabilityRequest"
+              $ref: "#/components/schemas/Liability"
       responses:
         "200":
           description: Updated liability
@@ -1437,20 +1092,20 @@ paths:
           $ref: "#/components/responses/NotFound"
 
   # ── Income ───────────────────────────────────────────────────────────────
-  /api/profile/income:
-    put:
+  /api/profile/incomes:
+    post:
       tags: [Income]
-      summary: Update income details
-      description: Update salary, business income, rental income, and other income.
+      summary: Add an income source
+      description: Add a new income source (salary, rental, business, dividend, etc.) to the financial profile.
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UpdateIncomeRequest"
+              $ref: "#/components/schemas/Income"
       responses:
-        "200":
-          description: Updated income
+        "201":
+          description: Income source created
           content:
             application/json:
               schema:
@@ -1460,33 +1115,54 @@ paths:
         "401":
           $ref: "#/components/responses/Unauthorized"
 
-  # ── Expenses ─────────────────────────────────────────────────────────────
-  /api/profile/expenses/distribution:
+  /api/profile/incomes/{id}:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+        description: Income UUID
+
     put:
-      tags: [Expenses]
-      summary: Update expense distribution
-      description: |
-        Update the Need/Want/Savings percentage split.
-        All three percentages must sum to 100.
+      tags: [Income]
+      summary: Update an income source
+      description: Update an existing income source by its UUID.
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UpdateExpenseDistributionRequest"
+              $ref: "#/components/schemas/Income"
       responses:
         "200":
-          description: Updated distribution
+          description: Updated income source
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ExpenseDistribution"
+                $ref: "#/components/schemas/Income"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
 
-  /api/profile/expenses/items:
+    delete:
+      tags: [Income]
+      summary: Delete an income source
+      description: Remove an income source from the financial profile.
+      responses:
+        "204":
+          description: Income source deleted
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # ── Expenses ─────────────────────────────────────────────────────────────
+  /api/profile/expenses:
     post:
       tags: [Expenses]
       summary: Add a new expense item
@@ -1496,20 +1172,20 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/CreateExpenseItemRequest"
+              $ref: "#/components/schemas/Expense"
       responses:
         "201":
           description: Expense item created
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ExpenseItem"
+                $ref: "#/components/schemas/Expense"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
 
-  /api/profile/expenses/items/{id}:
+  /api/profile/expenses/{id}:
     parameters:
       - name: id
         in: path
@@ -1528,14 +1204,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: "#/components/schemas/UpdateExpenseItemRequest"
+              $ref: "#/components/schemas/Expense"
       responses:
         "200":
           description: Updated expense item
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ExpenseItem"
+                $ref: "#/components/schemas/Expense"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -1583,7 +1259,6 @@ paths:
                 $ref: "#/components/schemas/DashboardSummary"
         "401":
           $ref: "#/components/responses/Unauthorized"
-
 
   # ── Snapshots ────────────────────────────────────────────────────────────
   /api/snapshots:

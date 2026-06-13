@@ -2,7 +2,7 @@
 
 ## 1. Overview
 
-A full-stack web application that helps users track their personal net worth, track investment categories (METALS, LIQUID, DOMESTIC, INTERNATIONAL), manage liabilities, budget expenses (using the Need/Want/Savings rule), and calculate F.I.R.E. (Financial Independence, Retire Early) goals — replacing the current Excel-based workflow.
+A full-stack web application that helps users track their personal net worth, track investment categories (METALS, LIQUID, DOMESTIC, INTERNATIONAL), manage assets, liabilities, budget expenses, and calculate F.I.R.E. (Financial Independence, Retire Early) goals — replacing the current Excel-based workflow.
 
 ### Reference: User's Excel Layout
 
@@ -14,7 +14,7 @@ The existing Excel tracker has six key sections that this app will replicate and
 | Investment Data (instrument-level) | Investments module with cost vs market value |
 | Liability/Loans (EMI, ROI, tenure) | Loans module with amortization tracking |
 | Expense Details (Need/Want/Savings 65/15/20) | Budget module with projected vs actuals |
-| Asset Data (acquisition cost vs market value) | Physical Assets module with appreciation tracking |
+| Asset Data (acquisition cost vs market value) | Assets module with multi-currency appreciation tracking |
 | Summary Dashboard (Net Worth, FIRE, Runway) | Main Dashboard with charts and KPIs |
 | — | User Profile (name, DOB, login email) |
 
@@ -89,46 +89,50 @@ erDiagram
         string email UK
         string firstName
         string lastName
-        string dateOfBirth
         string avatarUrl
-        string currencyCode
+        object settings
         datetime createdAt
         datetime updatedAt
     }
 
-    FINANCIAL_PROFILE {
-        ObjectId _id PK
-        ObjectId userId FK
-        object income
-        object expenses
-        datetime updatedAt
-    }
-
-    PERSONAL_INFO {
-        int age
+    USER_SETTINGS {
+        string dateOfBirth
+        string currencyCode
         int retirementAge
         double expectedReturnRate
         double inflationRate
     }
 
+    FINANCIAL_PROFILE {
+        ObjectId _id PK
+        ObjectId userId FK
+        datetime updatedAt
+    }
+
     INVESTMENT {
         string id PK
         string name
-        string type
+        string investmentType
         double investedValue
         double currentValue
         double currentValueINR
         string currency
         array categories
+        datetime createdAt
+        datetime updatedAt
     }
 
-    PHYSICAL_ASSET {
+    ASSET {
         string id PK
         string name
         string type
         double acquisitionCost
-        double marketValue
+        double currentValue
+        double currentValueINR
+        string currency
         double percentChange
+        datetime createdAt
+        datetime updatedAt
     }
 
     LIABILITY {
@@ -139,31 +143,34 @@ erDiagram
         double emi
         double roi
         string loanType
+        string currency
         date firstEmiDate
         int tenureYears
         int remainingEmis
+        datetime createdAt
+        datetime updatedAt
     }
 
     INCOME {
-        double salary
-        double businessIncome
-        double rentalIncome
-        double otherIncome
+        string id PK
+        string source
+        double amount
+        string currency
+        double amountInr
         string frequency
+        datetime createdAt
+        datetime updatedAt
     }
 
-    EXPENSE_DISTRIBUTION {
-        int needPercent
-        int wantPercent
-        int savingsPercent
-    }
-
-    EXPENSE_ITEM {
+    EXPENSE {
         string id PK
         string name
         string category
-        double monthlyAmount
-        double annualAmount
+        double amount
+        string frequency
+        string currency
+        double monthlyAmountINR
+        double annualAmountINR
         boolean isProjected
     }
 
@@ -187,21 +194,22 @@ erDiagram
 
     USER ||--|| FINANCIAL_PROFILE : "has one"
     USER ||--o{ SNAPSHOT : "has many"
-    FINANCIAL_PROFILE ||--|| PERSONAL_INFO : "contains"
+    USER ||--|| USER_SETTINGS : "has one"
     FINANCIAL_PROFILE ||--o{ INVESTMENT : "contains"
-    FINANCIAL_PROFILE ||--o{ PHYSICAL_ASSET : "contains"
+    FINANCIAL_PROFILE ||--o{ ASSET : "contains"
     FINANCIAL_PROFILE ||--o{ LIABILITY : "contains"
-    FINANCIAL_PROFILE ||--|| INCOME : "contains"
-    FINANCIAL_PROFILE ||--|| EXPENSE_DISTRIBUTION : "contains"
-    FINANCIAL_PROFILE ||--o{ EXPENSE_ITEM : "contains"
+    FINANCIAL_PROFILE ||--o{ INCOME : "contains"
+    FINANCIAL_PROFILE ||--o{ EXPENSE : "contains"
 ```
 
 ### ERD Notes
 
 - **USER ↔ FINANCIAL_PROFILE**: One-to-one relationship. Each user has exactly one financial profile.
 - **USER ↔ SNAPSHOT**: One-to-many. A user accumulates monthly snapshots for historical tracking.
-- **FINANCIAL_PROFILE** embeds all sub-entities (investments, assets, liabilities, expenses) as nested arrays/objects within a single MongoDB document — this avoids JOINs and keeps reads fast.
-- **INVESTMENT, PHYSICAL_ASSET, LIABILITY, EXPENSE_ITEM** each have a UUID `id` field for client-side identification and targeted CRUD operations within the embedded arrays.
+- **USER ↔ USER_SETTINGS**: One-to-one. Embedded sub-document storing personal settings (DOB, currency, retirement age, expected return rate, inflation rate) with sensible defaults.
+- **FINANCIAL_PROFILE** embeds all sub-entities (investments, assets, liabilities, incomes, expenses) as nested arrays within a single MongoDB document — this avoids JOINs and keeps reads fast.
+- **INVESTMENT, ASSET, LIABILITY, INCOME, EXPENSE** each have a UUID `id` field for client-side identification and targeted CRUD operations within the embedded arrays.
+- **Multi-currency support**: Investment, Asset, Liability, Income, and Expense entities include a `currency` field with server-computed INR equivalents.
 
 ---
 
@@ -216,9 +224,14 @@ erDiagram
   "email": "string (unique)",
   "firstName": "string",
   "lastName": "string",
-  "dateOfBirth": "string (YYYY-MM-DD)",
   "avatarUrl": "string",
-  "currencyCode": "INR",
+  "settings": {
+    "dateOfBirth": "string (YYYY-MM-DD)",
+    "currencyCode": "INR",
+    "retirementAge": 60,
+    "expectedReturnRate": 12.0,
+    "inflationRate": 6.0
+  },
   "createdAt": "ISODate",
   "updatedAt": "ISODate"
 }
@@ -233,63 +246,69 @@ One document per user — the core financial data.
   "_id": "ObjectId",
   "userId": "ObjectId (ref: users)",
 
-  "personalInfo": {
-    "age": 33,
-    "retirementAge": 40,
-    "expectedReturnRate": 12.0,
-    "inflationRate": 6.0
-  },
-
-
   "investments": [
     {
       "id": "uuid",
       "name": "Mutual funds",
-      "type": "EQUITY",
+      "investmentType": "EQUITY",
       "investedValue": 3059347,
       "currentValue": 3502997,
       "currentValueINR": 3502997,
       "currency": "INR",
-      "categories": ["DOMESTIC", "LIQUID"]
+      "categories": ["DOMESTIC", "LIQUID"],
+      "createdAt": "ISODate",
+      "updatedAt": "ISODate"
     },
     {
       "id": "uuid",
       "name": "NPS",
-      "type": "RETIRALS",
+      "investmentType": "RETIRALS",
       "investedValue": 1154709,
       "currentValue": 1289244,
       "currentValueINR": 1289244,
       "currency": "INR",
-      "categories": ["DOMESTIC"]
+      "categories": ["DOMESTIC"],
+      "createdAt": "ISODate",
+      "updatedAt": "ISODate"
     },
     {
       "id": "uuid",
       "name": "US Equity Fund",
-      "type": "EQUITY",
+      "investmentType": "EQUITY",
       "investedValue": 9988,
       "currentValue": 9988,
       "currentValueINR": 948243,
       "currency": "USD",
-      "categories": ["INTERNATIONAL", "LIQUID"]
+      "categories": ["INTERNATIONAL", "LIQUID"],
+      "createdAt": "ISODate",
+      "updatedAt": "ISODate"
     }
   ],
 
-  "physicalAssets": [
+  "assets": [
     {
       "id": "uuid",
       "name": "Ganga Kalash (Flat)",
       "type": "REAL_ESTATE",
       "acquisitionCost": 4600000,
-      "marketValue": 7500000,
-      "percentChange": 63.0
+      "currentValue": 7500000,
+      "currentValueINR": 7500000,
+      "currency": "INR",
+      "percentChange": 63.0,
+      "createdAt": "ISODate",
+      "updatedAt": "ISODate"
     },
     {
       "id": "uuid",
       "name": "Farm (Land)",
       "type": "REAL_ESTATE",
       "acquisitionCost": 1200000,
-      "marketValue": 1200000,
-      "percentChange": 0.0
+      "currentValue": 1200000,
+      "currentValueINR": 1200000,
+      "currency": "INR",
+      "percentChange": 0.0,
+      "createdAt": "ISODate",
+      "updatedAt": "ISODate"
     }
   ],
 
@@ -302,9 +321,12 @@ One document per user — the core financial data.
       "emi": 76432,
       "roi": 7.1,
       "loanType": "OD",
+      "currency": "INR",
       "firstEmiDate": "2025-11-21",
       "tenureYears": 20,
-      "remainingEmis": 233
+      "remainingEmis": 233,
+      "createdAt": "ISODate",
+      "updatedAt": "ISODate"
     },
     {
       "id": "uuid",
@@ -314,66 +336,84 @@ One document per user — the core financial data.
       "emi": 22022,
       "roi": 7.25,
       "loanType": "REGULAR",
+      "currency": "INR",
       "firstEmiDate": null,
       "tenureYears": null,
-      "remainingEmis": null
+      "remainingEmis": null,
+      "createdAt": "ISODate",
+      "updatedAt": "ISODate"
     }
   ],
 
-  "income": {
-    "salary": 588260,
-    "businessIncome": 0,
-    "rentalIncome": 0,
-    "otherIncome": 0,
-    "frequency": "MONTHLY"
-  },
-
-  "expenses": {
-    "distribution": {
-      "needPercent": 65,
-      "wantPercent": 15,
-      "savingsPercent": 20
+  "incomes": [
+    {
+      "id": "uuid",
+      "source": "SALARY",
+      "amount": 588260,
+      "currency": "INR",
+      "amountInr": 588260,
+      "frequency": "MONTHLY",
+      "createdAt": "ISODate",
+      "updatedAt": "ISODate"
     },
-    "items": [
-      {
-        "id": "uuid",
-        "name": "Home Loan EMI",
-        "category": "NEED",
-        "monthlyAmount": 126389,
-        "annualAmount": 1516660,
-        "isProjected": true
-      },
-      {
-        "id": "uuid",
-        "name": "CAR + Driver",
-        "category": "NEED",
-        "monthlyAmount": 100000,
-        "annualAmount": 1200000,
-        "isProjected": true
-      },
-      {
-        "id": "uuid",
-        "name": "Groceries",
-        "category": "NEED",
-        "monthlyAmount": 21000,
-        "annualAmount": 252000,
-        "isProjected": true
-      },
-      {
-        "id": "uuid",
-        "name": "Travel",
-        "category": "WANT",
-        "monthlyAmount": 0,
-        "annualAmount": 100000,
-        "isProjected": true
-      }
-    ],
-    "actuals": {
-      "monthlyTotal": 0,
-      "annualTotal": 0,
-      "items": []
+    {
+      "id": "uuid",
+      "source": "RENTAL",
+      "amount": 25000,
+      "currency": "INR",
+      "amountInr": 25000,
+      "frequency": "MONTHLY",
+      "createdAt": "ISODate",
+      "updatedAt": "ISODate"
     }
-  },
+  ],
+
+  "expenses": [
+    {
+      "id": "uuid",
+      "name": "Home Loan EMI",
+      "category": "NEED",
+      "amount": 126389,
+      "frequency": "MONTHLY",
+      "currency": "INR",
+      "monthlyAmountINR": 126389,
+      "annualAmountINR": 1516660,
+      "isProjected": true
+    },
+    {
+      "id": "uuid",
+      "name": "CAR + Driver",
+      "category": "NEED",
+      "amount": 100000,
+      "frequency": "MONTHLY",
+      "currency": "INR",
+      "monthlyAmountINR": 100000,
+      "annualAmountINR": 1200000,
+      "isProjected": true
+    },
+    {
+      "id": "uuid",
+      "name": "Groceries",
+      "category": "NEED",
+      "amount": 21000,
+      "frequency": "MONTHLY",
+      "currency": "INR",
+      "monthlyAmountINR": 21000,
+      "annualAmountINR": 252000,
+      "isProjected": true
+    },
+    {
+      "id": "uuid",
+      "name": "Travel",
+      "category": "WANT",
+      "amount": 100000,
+      "frequency": "YEARLY",
+      "currency": "INR",
+      "monthlyAmountINR": 8333,
+      "annualAmountINR": 100000,
+      "isProjected": true
+    }
+  ],
 
   "updatedAt": "ISODate"
 }
@@ -424,9 +464,9 @@ Monthly snapshots for net worth over time chart.
 
 | Method | Endpoint | Description |
 |---|---|---|
-| GET | `/api/users/profile` | Get user profile (name, DOB, email, avatar) |
-| PUT | `/api/users/profile` | Update first name, last name, DOB |
-| PUT | `/api/users/settings` | Update currency code (ISO 4217), age, retirement age, expected return rate, inflation rate |
+| GET | `/api/users/profile` | Get user profile (name, email, avatar, settings) |
+| PUT | `/api/users/profile` | Update first name, last name |
+| PUT | `/api/users/settings` | Update DOB, currency code, retirement age, expected return rate, inflation rate (returns `UserSettings`) |
 
 ### 6.3 Financial Profile
 
@@ -436,17 +476,18 @@ Monthly snapshots for net worth over time chart.
 | POST | `/api/profile/investments` | Add an investment |
 | PUT | `/api/profile/investments/{id}` | Update an investment |
 | DELETE | `/api/profile/investments/{id}` | Delete an investment |
-| POST | `/api/profile/physical-assets` | Add a physical asset |
-| PUT | `/api/profile/physical-assets/{id}` | Update a physical asset |
-| DELETE | `/api/profile/physical-assets/{id}` | Delete a physical asset |
+| POST | `/api/profile/assets` | Add an asset |
+| PUT | `/api/profile/assets/{id}` | Update an asset |
+| DELETE | `/api/profile/assets/{id}` | Delete an asset |
 | POST | `/api/profile/liabilities` | Add a liability/loan |
 | PUT | `/api/profile/liabilities/{id}` | Update a liability/loan |
 | DELETE | `/api/profile/liabilities/{id}` | Delete a liability/loan |
-| PUT | `/api/profile/income` | Update income details |
-| PUT | `/api/profile/expenses/distribution` | Update Need/Want/Savings % split |
-| POST | `/api/profile/expenses/items` | Add an expense item |
-| PUT | `/api/profile/expenses/items/{id}` | Update an expense item |
-| DELETE | `/api/profile/expenses/items/{id}` | Delete an expense item |
+| POST | `/api/profile/incomes` | Add an income source |
+| PUT | `/api/profile/incomes/{id}` | Update an income source |
+| DELETE | `/api/profile/incomes/{id}` | Delete an income source |
+| POST | `/api/profile/expenses` | Add an expense item |
+| PUT | `/api/profile/expenses/{id}` | Update an expense item |
+| DELETE | `/api/profile/expenses/{id}` | Delete an expense item |
 
 ### 6.4 Dashboard / Calculations
 
@@ -469,7 +510,7 @@ Monthly snapshots for net worth over time chart.
 ### 7.1 Total Assets
 
 ```
-Total Assets = Sum(all investment currentValues) + Sum(all physicalAsset marketValues)
+Total Assets = Sum(all investment currentValueINR) + Sum(all asset currentValueINR)
 ```
 
 ### 7.2 Total Liabilities
@@ -497,9 +538,9 @@ Liquid Assets = Sum(currentValueINR) where investment.categories contains LIQUID
 ### 7.5 Income & Savings (Per Annum)
 
 ```
-Income PA = (Monthly Salary + Business Income + Rental Income + Other Income) × 12
+Income PA = Sum(all income amountInr × frequencyMultiplier)
 Savings PA = Income PA - Total Expenses PA
-Basic Expense PA = Sum(expense items where category = NEED, annualized)
+Basic Expense PA = Sum(expense annualAmountINR where category = NEED)
 ```
 
 ### 7.6 Emergency Surplus / Deficit
@@ -512,7 +553,7 @@ Emergency Surplus/Deficit = Liquid Assets - Emergency Fund Target
 ### 7.7 Runway (Preparedness for Loss of Income)
 
 ```
-Monthly Expenses = Sum(all expense items, annualized) / 12
+Monthly Expenses = Sum(all expense monthlyAmountINR)
 Runway (months) = Liquid Assets ÷ Monthly Expenses
 Runway (years) = Runway (months) ÷ 12
 ```
@@ -520,7 +561,7 @@ Runway (years) = Runway (months) ÷ 12
 ### 7.8 F.I.R.E. Amount (25x Rule)
 
 ```
-Annual Expenses = Sum(all expense items, annualized) - Sum(expense items where category = SAVINGS)
+Annual Expenses = Sum(all expense annualAmountINR) - Sum(expense annualAmountINR where category = SAVINGS)
 FIRE Amount = Annual Expenses × 25
 FIRE Diff = FIRE Amount - Net Worth
 ```
@@ -714,9 +755,9 @@ Includes an **inline-editable Retirement Age** field for quick adjustments.
 - Subtotals by category (METALS, LIQUID, DOMESTIC, INTERNATIONAL)
 - Investment categories pie chart
 
-#### Assets Page (Physical Assets)
-- Table of real estate, vehicles, jewelry, etc.
-- Acquisition cost vs market value with % change
+#### Assets Page
+- Table of all assets: real estate, vehicles, jewelry, etc.
+- Acquisition cost vs current value with multi-currency support and % change
 - Add/Edit/Delete asset modal
 
 #### Liabilities Page
@@ -725,10 +766,10 @@ Includes an **inline-editable Retirement Age** field for quick adjustments.
 - Total EMI per month, total outstanding
 
 #### Budget Page
-- Need/Want/Savings distribution settings (65/15/20 configurable)
-- Expense items table with category, monthly, annual amounts
+- Expense items table with category (Need/Want/Savings), amount, frequency, and currency
+- Server-computed monthly and annual INR amounts
 - Projected vs Actuals comparison
-- Income details section
+- Income details section (source, amount, currency, frequency)
 
 #### Settings Page
 - Personal info (age, retirement age, expected return, inflation rate)
@@ -767,14 +808,11 @@ backend/
 │   │   ├── FinancialProfile.java
 │   │   ├── Snapshot.java
 │   │   ├── embedded/
-│   │   │   ├── PersonalInfo.java
 │   │   │   ├── Investment.java
-│   │   │   ├── PhysicalAsset.java
+│   │   │   ├── Asset.java
 │   │   │   ├── Liability.java
 │   │   │   ├── Income.java
-│   │   │   ├── Expenses.java
-│   │   │   ├── ExpenseDistribution.java
-│   │   │   └── ExpenseItem.java
+│   │   │   └── Expense.java
 │   │   └── dto/
 │   │       ├── UserProfileDto.java
 │   │       ├── DashboardSummaryDto.java
