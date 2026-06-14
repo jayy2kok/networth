@@ -2,9 +2,11 @@ import { useState, useRef } from 'react'
 import {
   PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer,
   BarChart, Bar, XAxis, YAxis, CartesianGrid,
+  LineChart, Line, ReferenceLine,
 } from 'recharts'
 import { useDashboard } from '../hooks/useDashboard'
 import { useUser }      from '../hooks/useUser'
+import { useSnapshots } from '../hooks/useSnapshots'
 import { formatINR, formatPercent } from '../utils/formatCurrency'
 import * as userApi from '../services/user'
 
@@ -71,6 +73,7 @@ const inrTooltip = ({ active, payload }) => {
 export default function DashboardPage() {
   const { summary, loading, reload: reloadDash } = useDashboard()
   const { user, reload: reloadUser }              = useUser()
+  const { snapshots, taking, takeSnapshot }        = useSnapshots()
   const [editingRetAge, setEditingRetAge] = useState(false)
   const [retAgeInput,   setRetAgeInput]   = useState('')
   const [savingRetAge,  setSavingRetAge]  = useState(false)
@@ -321,33 +324,123 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* ── Net Worth Snapshot Placeholder (Phase 4) ──────────────────── */}
+        {/* ── Net Worth Over Time (Phase 4: Real Line Chart) ─────────────── */}
         <div className="card">
-          <div className="card-title">Net Worth Over Time</div>
-          <div className="card-sub">Monthly snapshot history</div>
+          <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+            <div>
+              <div className="card-title">Net Worth Over Time</div>
+              <div className="card-sub">Monthly snapshot history</div>
+            </div>
+            <button
+              id="take-snapshot-btn"
+              onClick={takeSnapshot}
+              disabled={taking}
+              className="btn btn-primary btn-sm"
+              style={{ flexShrink: 0, marginTop: '0.125rem' }}
+            >
+              {taking ? '⏳ Saving…' : '📸 Snapshot'}
+            </button>
+          </div>
 
-          {/* Mini breakdown stats while no chart data */}
-          <div style={{ display: 'grid', gap: '0.625rem', marginBottom: '1rem' }}>
-            {[
-              { label: '📈 Investments', value: s.totalInvestments,   cls: 'text-gain' },
-              { label: '🏠 Real Estate', value: s.totalRealEstate,    cls: '' },
-              { label: '🎒 Other Assets', value: s.totalAssetValue - s.totalRealEstate, cls: '' },
-              { label: '💳 Liabilities', value: -s.totalLiabilities,  cls: 'text-loss' },
-              { label: '🏦 Net Worth',   value: s.netWorth,           cls: s.netWorth >= 0 ? 'text-gain' : 'text-loss' },
-            ].map(({ label, value, cls }) => (
-              <div key={label} style={{ display: 'flex', justifyContent: 'space-between',
-                alignItems: 'center', padding: '0.5rem 0.75rem',
-                background: 'var(--color-surface-secondary)', borderRadius: 8 }}>
-                <span style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)' }}>{label}</span>
-                <span className={cls} style={{ fontWeight: 700, fontSize: '0.875rem' }}>{formatINR(Math.abs(value))}</span>
+          {snapshots.length > 0 ? (
+            <ResponsiveContainer width="100%" height={230}>
+              <LineChart
+                data={snapshots.map(s => ({
+                  date: s.snapshotDate,
+                  netWorth: Math.round(s.netWorth),
+                  assets: Math.round(s.totalAssets),
+                  liabilities: Math.round(s.totalLiabilities),
+                }))}
+                margin={{ left: 8, right: 8, top: 8, bottom: 0 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
+                <XAxis
+                  dataKey="date"
+                  tick={{ fontSize: 10, fill: 'var(--color-text-secondary)' }}
+                  tickFormatter={d => {
+                    if (!d) return ''
+                    const parts = d.split('-')
+                    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+                    return `${months[parseInt(parts[1]) - 1] ?? ''} '${parts[0]?.slice(2) ?? ''}`
+                  }}
+                />
+                <YAxis
+                  tick={{ fontSize: 10, fill: 'var(--color-text-secondary)' }}
+                  tickFormatter={v => {
+                    if (Math.abs(v) >= 10000000) return `₹${(v/10000000).toFixed(1)}Cr`
+                    if (Math.abs(v) >= 100000)   return `₹${(v/100000).toFixed(0)}L`
+                    return `₹${(v/1000).toFixed(0)}K`
+                  }}
+                  width={62}
+                />
+                <Tooltip
+                  content={({ active, payload, label }) => {
+                    if (!active || !payload?.length) return null
+                    return (
+                      <div style={{
+                        background: 'var(--color-surface-card)',
+                        border: '1px solid var(--color-border)',
+                        borderRadius: 8, padding: '0.625rem 0.875rem',
+                        fontSize: '0.8rem', boxShadow: '0 4px 16px rgba(0,0,0,0.12)',
+                        minWidth: 160,
+                      }}>
+                        <div style={{ fontWeight: 700, marginBottom: '0.375rem', color: 'var(--color-text-primary)' }}>{label}</div>
+                        {payload.map(p => (
+                          <div key={p.dataKey} style={{ display: 'flex', justifyContent: 'space-between', gap: '1rem',
+                            color: p.color, fontWeight: 600, marginBottom: 2 }}>
+                            <span style={{ color: 'var(--color-text-secondary)', fontWeight: 500 }}>{p.name}</span>
+                            <span>{formatINR(p.value)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )
+                  }}
+                />
+                <ReferenceLine y={0} stroke="var(--color-border)" strokeDasharray="4 4" />
+                <Line
+                  type="monotone" dataKey="netWorth" name="Net Worth"
+                  stroke="var(--color-accent)" strokeWidth={2.5} dot={{ r: 3.5, fill: 'var(--color-accent)' }}
+                  activeDot={{ r: 5 }}
+                />
+                <Line
+                  type="monotone" dataKey="assets" name="Total Assets"
+                  stroke="var(--color-success)" strokeWidth={1.5} strokeDasharray="4 2"
+                  dot={false}
+                />
+                <Line
+                  type="monotone" dataKey="liabilities" name="Liabilities"
+                  stroke="var(--color-danger)" strokeWidth={1.5} strokeDasharray="4 2"
+                  dot={false}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          ) : (
+            <>
+              {/* Mini breakdown stats while no chart data */}
+              <div style={{ display: 'grid', gap: '0.625rem', marginBottom: '1rem' }}>
+                {[
+                  { label: '📈 Investments', value: s.totalInvestments,   cls: 'text-gain' },
+                  { label: '🏠 Real Estate', value: s.totalRealEstate,    cls: '' },
+                  { label: '🎒 Other Assets', value: s.totalAssetValue - s.totalRealEstate, cls: '' },
+                  { label: '💳 Liabilities', value: -s.totalLiabilities,  cls: 'text-loss' },
+                  { label: '🏦 Net Worth',   value: s.netWorth,           cls: s.netWorth >= 0 ? 'text-gain' : 'text-loss' },
+                ].map(({ label, value, cls }) => (
+                  <div key={label} style={{ display: 'flex', justifyContent: 'space-between',
+                    alignItems: 'center', padding: '0.5rem 0.75rem',
+                    background: 'var(--color-surface-secondary)', borderRadius: 8 }}>
+                    <span style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)' }}>{label}</span>
+                    <span className={cls} style={{ fontWeight: 700, fontSize: '0.875rem' }}>{formatINR(Math.abs(value))}</span>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
 
-          <div className="empty-state" style={{ padding: '1rem 0.5rem' }}>
-            <div className="empty-icon" style={{ fontSize: '1.5rem' }}>📈</div>
-            <div className="empty-desc">Take monthly snapshots to track net worth over time. Coming in Phase 4.</div>
-          </div>
+              <div className="empty-state" style={{ padding: '0.75rem 0.5rem' }}>
+                <div className="empty-icon" style={{ fontSize: '1.5rem' }}>📈</div>
+                <div className="empty-title">No history yet</div>
+                <div className="empty-desc">Click <strong>📸 Snapshot</strong> to record today's net worth. Take monthly snapshots to see trends over time.</div>
+              </div>
+            </>
+          )}
         </div>
 
       </div>

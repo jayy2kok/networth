@@ -13,6 +13,32 @@ export function formatINR(value) {
 }
 
 /**
+ * Currency-aware compact formatter.
+ * Uses the correct currency symbol (₹, $, €, etc.) via Intl API.
+ * Falls back to formatINR for INR values.
+ * e.g. (9988, 'USD') → "$10.0K"  |  (9988, 'INR') → "₹10.0K"
+ */
+export function formatCompact(value, currency = 'INR') {
+  if (value == null || isNaN(value)) return '—'
+  if (!currency || currency === 'INR') return formatINR(value)
+
+  // Get the symbol from Intl (e.g. '$', '€', '£')
+  let symbol = currency
+  try {
+    const parts = new Intl.NumberFormat('en-US', { style: 'currency', currency })
+      .formatToParts(0)
+    const sym = parts.find(p => p.type === 'currency')
+    if (sym) symbol = sym.value
+  } catch { /* fallback to ISO code */ }
+
+  const abs  = Math.abs(value)
+  const sign = value < 0 ? '-' : ''
+  if (abs >= 1e6)  return `${sign}${symbol}${(abs / 1e6).toFixed(2)}M`
+  if (abs >= 1e3)  return `${sign}${symbol}${(abs / 1e3).toFixed(1)}K`
+  return `${sign}${symbol}${abs.toFixed(0)}`
+}
+
+/**
  * Full Intl currency formatter with thousand separators.
  */
 export function formatCurrency(value, currency = 'INR') {

@@ -1,4 +1,5 @@
 import { useLocation } from 'react-router-dom'
+import { useTheme } from '../../hooks/useTheme'
 
 const PAGE_META = {
   '/':            { title: 'Dashboard',   sub: 'Net worth, FIRE progress & financial overview' },
@@ -13,6 +14,7 @@ const PAGE_META = {
 export default function Navbar() {
   const { pathname } = useLocation()
   const { title, sub } = PAGE_META[pathname] ?? { title: 'NetWorth', sub: '' }
+  const { isDark, toggleTheme } = useTheme()
 
   return (
     <header className="navbar">
@@ -24,9 +26,20 @@ export default function Navbar() {
       <div className="navbar-spacer" />
 
       <div className="phase-tag">
-        <span>🚧</span>
-        Phase 1 — Foundation
+        <span>✅</span>
+        Phase 4 — Historical Tracking
       </div>
+
+      {/* Phase 4: Theme toggle */}
+      <button
+        id="theme-toggle-btn"
+        onClick={toggleTheme}
+        className="theme-toggle-btn"
+        title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+        aria-label="Toggle dark/light mode"
+      >
+        {isDark ? '☀️' : '🌙'}
+      </button>
     </header>
   )
 }

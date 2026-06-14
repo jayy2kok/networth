@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useProfile } from '../hooks/useProfile'
 import Modal from '../components/common/Modal'
 import * as profileApi from '../services/profile'
-import { formatINR, formatPercent } from '../utils/formatCurrency'
+import { formatINR, formatCompact, formatPercent } from '../utils/formatCurrency'
 
 const TYPES = ['EQUITY','BONDS','DEBT','ETF','RETIRALS','FIXED_DEPOSITS','CASH_EQUIVALENT']
 const CATS  = ['METALS','LIQUID','DOMESTIC','INTERNATIONAL']
@@ -103,7 +103,7 @@ export default function InvestmentsPage() {
                   <tr key={inv.id}>
                     <td style={{fontWeight:600}}>{inv.name}</td>
                     <td><span className={typeBadge(inv.investmentType)}>{inv.investmentType}</span></td>
-                    <td>{formatINR(inv.investedValue)}</td>
+                    <td>{formatCompact(inv.investedValue, inv.currency)}</td>
                     <td>{formatINR(inv.currentValueINR||inv.currentValue)}</td>
                     <td style={{color:'var(--color-text-secondary)'}}>{inv.currency}</td>
                     <td><div style={{display:'flex',gap:'0.25rem',flexWrap:'wrap'}}>
