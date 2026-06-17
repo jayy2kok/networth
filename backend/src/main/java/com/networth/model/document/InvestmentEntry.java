@@ -12,6 +12,8 @@ public class InvestmentEntry {
     /** EQUITY | BONDS | DEBT | ETF | RETIRALS | FIXED_DEPOSITS | CASH_EQUIVALENT */
     private String investmentType;
     private Double investedValue;
+    /** Server-computed via FX API */
+    private Double investedValueINR;
     private Double currentValue;
     /** Server-computed via FX API */
     private Double currentValueINR;

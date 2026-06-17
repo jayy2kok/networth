@@ -63,7 +63,9 @@ public class ProfileService {
 
     private void enrichInvestment(InvestmentEntry inv) {
         double current = inv.getCurrentValue() != null ? inv.getCurrentValue() : 0.0;
+        double invested = inv.getInvestedValue() != null ? inv.getInvestedValue() : 0.0;
         inv.setCurrentValueINR(fxService.toInr(current, inv.getCurrency()));
+        inv.setInvestedValueINR(fxService.toInr(invested, inv.getCurrency()));
     }
 
     // ─── Assets ──────────────────────────────────────────────────────────────

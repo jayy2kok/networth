@@ -241,6 +241,13 @@ components:
           minimum: 0
           description: Total amount invested (cost basis)
           example: 3059347
+        investedValueINR:
+          type: number
+          format: double
+          minimum: 0
+          description: Total amount invested in INR
+          readOnly: true
+          example: 3059347
         currentValue:
           type: number
           format: double

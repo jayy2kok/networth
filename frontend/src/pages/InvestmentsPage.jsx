@@ -21,7 +21,7 @@ export default function InvestmentsPage() {
   const [err,    setErr]    = useState(null)
 
   const list = profile?.investments || []
-  const totalInvested = list.reduce((s,i) => s+(i.investedValue||0), 0)
+  const totalInvested = list.reduce((s,i) => s+(i.investedValueINR||i.investedValue||0), 0)
   const totalCurrent  = list.reduce((s,i) => s+(i.currentValueINR||i.currentValue||0), 0)
   const totalGain     = totalCurrent - totalInvested
   const gainPct       = totalInvested > 0 ? (totalGain/totalInvested)*100 : 0
@@ -97,8 +97,10 @@ export default function InvestmentsPage() {
             </tr></thead>
             <tbody>
               {list.map(inv => {
-                const gain = (inv.currentValueINR||inv.currentValue||0)-(inv.investedValue||0)
-                const pct  = inv.investedValue ? (gain/inv.investedValue)*100 : 0
+                const invInr = inv.investedValueINR || inv.investedValue || 0
+                const curInr = inv.currentValueINR || inv.currentValue || 0
+                const gain = curInr - invInr
+                const pct  = invInr ? (gain/invInr)*100 : 0
                 return (
                   <tr key={inv.id}>
                     <td style={{fontWeight:600}}>{inv.name}</td>
