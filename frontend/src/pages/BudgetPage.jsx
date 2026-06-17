@@ -9,7 +9,7 @@ const EXP_CATS   = ['NEED','WANT','SAVINGS']
 const FREQS      = ['MONTHLY','YEARLY','QUARTERLY']
 
 const BLANK_INC  = { source:'SALARY', amount:'', currency:'INR', frequency:'MONTHLY' }
-const BLANK_EXP  = { name:'', category:'NEED', amount:'', frequency:'MONTHLY', currency:'INR', isProjected:true }
+const BLANK_EXP  = { name:'', category:'NEED', amount:'', frequency:'MONTHLY', currency:'INR', isProjected:true, includeInRunway:true, includeInFIRE:true }
 
 function catBadge(c) { return `badge badge--${(c||'').toLowerCase()}` }
 function srcBadge(s) {
@@ -66,7 +66,8 @@ export default function BudgetPage() {
   const openAddExp  = ()     => { setExpForm(BLANK_EXP); setErr(null); setExpModal({open:true,item:null}) }
   const openEditExp = (item) => {
     setExpForm({ name:item.name||'', category:item.category||'NEED', amount:item.amount??'',
-      frequency:item.frequency||'MONTHLY', currency:item.currency||'INR', isProjected:item.isProjected!==false })
+      frequency:item.frequency||'MONTHLY', currency:item.currency||'INR', isProjected:item.isProjected!==false,
+      includeInRunway: item.includeInRunway!==false, includeInFIRE: item.includeInFIRE!==false })
     setErr(null); setExpModal({open:true,item})
   }
   const closeExp = () => setExpModal({open:false,item:null})
@@ -162,7 +163,11 @@ export default function BudgetPage() {
             <tbody>
               {expenses.map(exp => (
                 <tr key={exp.id}>
-                  <td style={{fontWeight:600}}>{exp.name}</td>
+                  <td style={{fontWeight:600}}>
+                    {exp.name}
+                    {exp.includeInRunway === false && <span className="badge badge--default" style={{marginLeft:'0.5rem',fontSize:'0.65rem'}}>No Runway</span>}
+                    {exp.includeInFIRE === false && <span className="badge badge--default" style={{marginLeft:'0.5rem',fontSize:'0.65rem'}}>No FIRE</span>}
+                  </td>
                   <td><span className={catBadge(exp.category)}>{exp.category}</span></td>
                   <td>{exp.amount?.toLocaleString()} {exp.currency}</td>
                   <td><span className="badge badge--default">{exp.frequency}</span></td>
@@ -252,7 +257,13 @@ export default function BudgetPage() {
           <div className="form-field form-field--span2" style={{flexDirection:'row',alignItems:'center',gap:'0.625rem'}}>
             <input type="checkbox" id="projected" checked={expForm.isProjected}
               onChange={e=>setExpForm(f=>({...f,isProjected:e.target.checked}))} />
-            <label htmlFor="projected" className="form-label" style={{marginBottom:0}}>Projected (estimate)</label>
+            <label htmlFor="projected" className="form-label" style={{marginBottom:0}}>Projected</label>
+            <input type="checkbox" id="includeInRunway" checked={expForm.includeInRunway}
+              onChange={e=>setExpForm(f=>({...f,includeInRunway:e.target.checked}))} style={{marginLeft:'1rem'}} />
+            <label htmlFor="includeInRunway" className="form-label" style={{marginBottom:0}}>Include in Runway</label>
+            <input type="checkbox" id="includeInFIRE" checked={expForm.includeInFIRE}
+              onChange={e=>setExpForm(f=>({...f,includeInFIRE:e.target.checked}))} style={{marginLeft:'1rem'}} />
+            <label htmlFor="includeInFIRE" className="form-label" style={{marginBottom:0}}>Include in FIRE</label>
           </div>
         </div>
         {err && <div className="form-error">{err}</div>}

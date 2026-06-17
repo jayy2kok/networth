@@ -26,7 +26,7 @@ function FireGauge({ progress = 0 }) {
   const angleRad = (180 - pct * 1.8) * Math.PI / 180
   const ex = cx + r * Math.cos(angleRad)
   const ey = cy - r * Math.sin(angleRad)
-  const largeArc = pct > 50 ? 1 : 0
+  const largeArc = 0
   const color = pct >= 100 ? '#10B981' : pct >= 50 ? '#F59E0B' : '#D4A017'
 
   return (

@@ -70,7 +70,10 @@ public class CalculationService {
         double savingsRate = incomePA > 0 ? (savingsPA / incomePA) * 100.0 : 0.0;
 
         // ── 7.6  Emergency Fund ───────────────────────────────────────────
-        double monthlyExpenses    = sum(profile.getExpenses(), e -> nvl(e.getMonthlyAmountINR()));
+        double monthlyExpenses    = profile.getExpenses().stream()
+                .filter(e -> e.getIncludeInRunway() == null || e.getIncludeInRunway())
+                .mapToDouble(e -> nvl(e.getMonthlyAmountINR()))
+                .sum();
         double emergencyFundTarget = monthlyExpenses * 6.0;
         double emergencySurplus   = liquidAssets - emergencyFundTarget;
 
@@ -83,7 +86,7 @@ public class CalculationService {
 
         // ── 7.8  FIRE Amount (25× rule) ───────────────────────────────────
         double annualNonSavingsExp = profile.getExpenses().stream()
-                .filter(e -> !"SAVINGS".equals(e.getCategory()))
+                .filter(e -> !"SAVINGS".equals(e.getCategory()) && (e.getIncludeInFIRE() == null || e.getIncludeInFIRE()))
                 .mapToDouble(e -> nvl(e.getAnnualAmountINR()))
                 .sum();
         double fireAmount   = annualNonSavingsExp * 25.0;

@@ -17,4 +17,6 @@ public class ExpenseEntry {
     /** Server-computed: normalised to annual INR */
     private Double annualAmountINR;
     private Boolean isProjected;
+    private Boolean includeInRunway;
+    private Boolean includeInFIRE;
 }

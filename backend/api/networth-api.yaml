@@ -516,6 +516,16 @@ components:
           description: Annual expense amount
           example: 1516660
           readOnly: true
+        includeInRunway:
+          type: boolean
+          description: Whether this expense should be included in runway calculations
+          example: true
+          default: true
+        includeInFIRE:
+          type: boolean
+          description: Whether this expense should be included in FIRE calculations
+          example: true
+          default: true
         isProjected:
           type: boolean
           description: Whether this is a projected (budgeted) expense vs actual
