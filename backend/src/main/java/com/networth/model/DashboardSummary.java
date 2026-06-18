@@ -47,8 +47,12 @@ public class DashboardSummary {
     Integer currentAge;
     Integer retirementMonthsLeft;
 
+    // ── Retirement ────────────────────────────────────────────────────────
+    Double yearsToRetirement;    // retirementMonthsLeft / 12 (null if DOB unknown)
+
     // ── Breakdowns ────────────────────────────────────────────────────────
     Map<String, Double> investmentByCategory;   // DOMESTIC, INTERNATIONAL, LIQUID, METALS
+    Map<String, Double> investmentByType;       // EQUITY, ETF, RETIRALS, FIXED_DEPOSITS, etc.
     Map<String, Double> expenseByCategory;      // NEED, WANT, SAVINGS (annual INR)
     Map<String, Double> liabilitiesBreakdown;   // homeLoans, personalLoans, otherDebts
 }

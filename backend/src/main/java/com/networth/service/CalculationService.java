@@ -69,7 +69,7 @@ public class CalculationService {
         double savingsPA   = incomePA - expensePA;
         double savingsRate = incomePA > 0 ? (savingsPA / incomePA) * 100.0 : 0.0;
 
-        // ── 7.6  Emergency Fund ───────────────────────────────────────────
+        // ── 7.6  Emergency Fund ───────────────────────────────────────────────
         double monthlyExpenses    = profile.getExpenses().stream()
                 .filter(e -> e.getIncludeInRunway() == null || e.getIncludeInRunway())
                 .mapToDouble(e -> nvl(e.getMonthlyAmountINR()))
@@ -80,8 +80,12 @@ public class CalculationService {
         // ── Monthly EMI ───────────────────────────────────────────────────
         double totalMonthlyEmi = sum(profile.getLiabilities(), l -> nvl(l.getEmi()));
 
-        // ── 7.7  Runway ───────────────────────────────────────────────────
-        double runwayMonths = monthlyExpenses > 0 ? liquidAssets / monthlyExpenses : 0.0;
+        // ── 7.7  Runway (Liquid Assets ÷ monthly NEED expenses) ──────────────
+        double monthlyNeedExpenses = profile.getExpenses().stream()
+                .filter(e -> "NEED".equals(e.getCategory()))
+                .mapToDouble(e -> nvl(e.getMonthlyAmountINR()))
+                .sum();
+        double runwayMonths = monthlyNeedExpenses > 0 ? liquidAssets / monthlyNeedExpenses : 0.0;
         double runwayYears  = runwayMonths / 12.0;
 
         // ── 7.8  FIRE Amount (25× rule) ───────────────────────────────────
@@ -106,23 +110,25 @@ public class CalculationService {
 
         Double yearsToFire = computeYearsToFire(fireDiff, monthlyInvestment, expectedReturn, inflation);
 
-        // ── 7.10  Retirement Countdown ────────────────────────────────────
+        // ── 7.10  Retirement Countdown ──────────────────────────────────────────
         int retirementAge = (settings != null && settings.getRetirementAge() != null)
                 ? settings.getRetirementAge() : 60;
         Integer currentAge          = null;
         Integer retirementMonthsLeft = null;
+        Double  yearsToRetirement    = null;
         if (settings != null && settings.getDateOfBirth() != null && !settings.getDateOfBirth().isBlank()) {
             try {
                 LocalDate dob   = LocalDate.parse(settings.getDateOfBirth());
                 long ageMonths  = ChronoUnit.MONTHS.between(dob, LocalDate.now());
                 currentAge      = (int) (ageMonths / 12);
                 retirementMonthsLeft = (retirementAge * 12) - (int) ageMonths;
+                yearsToRetirement    = Math.max(0.0, retirementMonthsLeft / 12.0);
             } catch (Exception ex) {
                 log.debug("Cannot parse DOB '{}': {}", settings.getDateOfBirth(), ex.getMessage());
             }
         }
 
-        // ── 7.11  Investment Category Breakdown ───────────────────────────
+        // ── 7.11  Investment Category Breakdown ─────────────────────────────────
         Map<String, Double> investmentByCategory = new LinkedHashMap<>();
         for (String cat : List.of("DOMESTIC", "INTERNATIONAL", "LIQUID", "METALS")) {
             double val = profile.getInvestments().stream()
@@ -130,6 +136,17 @@ public class CalculationService {
                     .mapToDouble(i -> nvl(i.getCurrentValueINR()))
                     .sum();
             investmentByCategory.put(cat, val);
+        }
+
+        // ── 7.12  Investment Type Breakdown (for risk chart) ────────────────────
+        Map<String, Double> investmentByType = new LinkedHashMap<>();
+        for (String type : List.of("EQUITY", "ETF", "CRYPTO", "RETIRALS", "FIXED_DEPOSITS",
+                                   "BONDS", "DEBT", "CASH_EQUIVALENT", "METALS")) {
+            double val = profile.getInvestments().stream()
+                    .filter(i -> type.equals(i.getInvestmentType()))
+                    .mapToDouble(i -> nvl(i.getCurrentValueINR()))
+                    .sum();
+            if (val > 0) investmentByType.put(type, val);
         }
 
         // ── Expense Category Breakdown ────────────────────────────────────
@@ -180,7 +197,9 @@ public class CalculationService {
                 .retirementAge(retirementAge)
                 .currentAge(currentAge)
                 .retirementMonthsLeft(retirementMonthsLeft)
+                .yearsToRetirement(yearsToRetirement)
                 .investmentByCategory(investmentByCategory)
+                .investmentByType(investmentByType)
                 .expenseByCategory(expenseByCategory)
                 .liabilitiesBreakdown(liabilitiesBreakdown)
                 .build();

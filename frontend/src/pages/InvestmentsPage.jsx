@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useProfile } from '../hooks/useProfile'
+import { useSearchParams } from 'react-router-dom'
 import Modal from '../components/common/Modal'
 import * as profileApi from '../services/profile'
 import { formatINR, formatCompact, formatPercent } from '../utils/formatCurrency'
@@ -15,14 +16,30 @@ function typeBadge(t) {
 
 export default function InvestmentsPage() {
   const { profile, loading, reload } = useProfile()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [modal,  setModal]  = useState({ open:false, item:null })
   const [form,   setForm]   = useState(BLANK)
   const [saving, setSaving] = useState(false)
   const [err,    setErr]    = useState(null)
+  const [activeFilter, setActiveFilter] = useState(searchParams.get('filter') || '')
+
+  // Sync filter from URL on mount
+  useEffect(() => {
+    const f = searchParams.get('filter') || ''
+    setActiveFilter(f)
+  }, [searchParams])
+
+  const clearFilter = () => {
+    setActiveFilter('')
+    setSearchParams({})
+  }
 
   const list = profile?.investments || []
-  const totalInvested = list.reduce((s,i) => s+(i.investedValueINR||i.investedValue||0), 0)
-  const totalCurrent  = list.reduce((s,i) => s+(i.currentValueINR||i.currentValue||0), 0)
+  const filteredList = activeFilter
+    ? list.filter(inv => (inv.categories || []).includes(activeFilter))
+    : list
+  const totalInvested = filteredList.reduce((s,i) => s+(i.investedValueINR||i.investedValue||0), 0)
+  const totalCurrent  = filteredList.reduce((s,i) => s+(i.currentValueINR||i.currentValue||0), 0)
   const totalGain     = totalCurrent - totalInvested
   const gainPct       = totalInvested > 0 ? (totalGain/totalInvested)*100 : 0
 
@@ -77,16 +94,31 @@ export default function InvestmentsPage() {
         <div className="stat-pill"><div className="stat-pill-label">Holdings</div><div className="stat-pill-value">{list.length}</div></div>
       </div>
 
+      {activeFilter && (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: '0.5rem',
+          padding: '0.5rem 0.875rem', marginBottom: '0.75rem',
+          background: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)',
+          borderRadius: '8px', fontSize: '0.8125rem',
+        }}>
+          <span style={{ color: 'var(--color-success)', fontWeight: 600 }}>🔍 Filtered: {activeFilter}</span>
+          <button onClick={clearFilter} style={{
+            marginLeft: 'auto', background: 'none', border: 'none',
+            cursor: 'pointer', color: 'var(--color-text-secondary)', fontSize: '1rem',
+          }}>✕ Clear</button>
+        </div>
+      )}
+
       <div className="page-header">
-        <div><div className="page-title">Investments</div><div className="page-meta">{list.length} {list.length===1?'entry':'entries'}</div></div>
+        <div><div className="page-title">Investments</div><div className="page-meta">{filteredList.length} of {list.length} {list.length===1?'entry':'entries'}</div></div>
         <button className="btn btn-primary" onClick={openAdd}>+ Add Investment</button>
       </div>
 
-      {list.length === 0 ? (
+      {filteredList.length === 0 ? (
         <div className="card"><div className="empty-state">
           <div className="empty-icon">📈</div>
-          <div className="empty-title">No investments yet</div>
-          <div className="empty-desc">Add mutual funds, stocks, NPS, FDs and more to track your portfolio.</div>
+          <div className="empty-title">{activeFilter ? `No ${activeFilter} investments` : 'No investments yet'}</div>
+          <div className="empty-desc">{activeFilter ? `No investments tagged with ${activeFilter}.` : 'Add mutual funds, stocks, NPS, FDs and more to track your portfolio.'}</div>
         </div></div>
       ) : (
         <div className="table-wrap">
@@ -96,7 +128,7 @@ export default function InvestmentsPage() {
               <th>Currency</th><th>Categories</th><th>Gain / Loss</th><th></th>
             </tr></thead>
             <tbody>
-              {list.map(inv => {
+              {filteredList.map(inv => {
                 const invInr = inv.investedValueINR || inv.investedValue || 0
                 const curInr = inv.currentValueINR || inv.currentValue || 0
                 const gain = curInr - invInr
