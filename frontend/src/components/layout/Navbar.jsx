@@ -1,4 +1,4 @@
-import { useLocation } from 'react-router-dom'
+import { useLocation, NavLink } from 'react-router-dom'
 import { useTheme } from '../../hooks/useTheme'
 
 const PAGE_META = {
@@ -24,6 +24,12 @@ export default function Navbar() {
       </div>
 
       <div className="navbar-spacer" />
+
+      {/* Mobile-only profile/settings links (sidebar hidden on mobile) */}
+      <div className="navbar-mobile-actions">
+        <NavLink to="/profile" className={({isActive}) => `navbar-action-btn${isActive ? ' active' : ''}`} title="Profile">👤</NavLink>
+        <NavLink to="/settings" className={({isActive}) => `navbar-action-btn${isActive ? ' active' : ''}`} title="Settings">⚙️</NavLink>
+      </div>
 
       <div className="phase-tag">
         <span>✅</span>

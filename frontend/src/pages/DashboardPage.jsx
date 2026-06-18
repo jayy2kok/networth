@@ -88,7 +88,7 @@ const pctTooltip = ({ active, payload }) => {
 
 /* ── Pct Label inside bar ─────────────────────────────────────────────────── */
 const PctBarLabel = ({ x, y, width, height, value, total }) => {
-  if (!total || width < 40) return null
+  if (!total || width < 40 || isNaN(x) || isNaN(y) || isNaN(width) || isNaN(height)) return null
   const pct = ((value / total) * 100).toFixed(1)
   return (
     <text x={x + width / 2} y={y + height / 2 + 4} textAnchor="middle"
@@ -100,7 +100,7 @@ const PctBarLabel = ({ x, y, width, height, value, total }) => {
 
 /* ── Pie label ────────────────────────────────────────────────────────────── */
 const renderPieLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, name, percent }) => {
-  if (percent < 0.05) return null
+  if (percent < 0.05 || isNaN(percent) || isNaN(cx) || isNaN(cy) || isNaN(innerRadius) || isNaN(outerRadius) || isNaN(midAngle)) return null
   const RADIAN = Math.PI / 180
   const radius = innerRadius + (outerRadius - innerRadius) * 0.5
   const x = cx + radius * Math.cos(-midAngle * RADIAN)
@@ -410,7 +410,7 @@ export default function DashboardPage() {
 
           <FireGauge progress={s.fireProgress} />
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem', marginTop: '0.75rem' }}>
+          <div className="fire-sub-grid">
             {[
               ['Net Worth',    formatINR(s.netWorth),    s.netWorth >= 0 ? 'text-gain' : 'text-loss'],
               ['FIRE Target',  formatINR(s.fireAmount),  ''],
@@ -429,7 +429,7 @@ export default function DashboardPage() {
           <div style={{ marginTop: '0.875rem', padding: '0.75rem', background: 'rgba(212,160,23,0.06)',
             border: '1px solid rgba(212,160,23,0.2)', borderRadius: '8px',
             display: 'flex', alignItems: 'center', gap: '0.625rem', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)' }}>Retire at:</span>
+            <span className="retire-editor-text" style={{ color: 'var(--color-text-secondary)' }}>Retire at:</span>
             {editingRetAge ? (
               <input
                 ref={retAgeRef}
@@ -452,7 +452,7 @@ export default function DashboardPage() {
               </button>
             )}
             {s.currentAge != null && (
-              <span style={{ fontSize: '0.8125rem', color: 'var(--color-text-muted)' }}>
+              <span className="retire-editor-text" style={{ color: 'var(--color-text-muted)' }}>
                 · Age {s.currentAge}
                 {s.retirementMonthsLeft != null && ` · ${Math.max(0, s.retirementMonthsLeft)} months left`}
               </span>
