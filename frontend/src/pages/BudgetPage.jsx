@@ -3,6 +3,8 @@ import { useProfile } from '../hooks/useProfile'
 import Modal from '../components/common/Modal'
 import * as profileApi from '../services/profile'
 import { formatINR } from '../utils/formatCurrency'
+import useIsMobile from '../hooks/useIsMobile'
+import MobileAccordionRow from '../components/common/MobileAccordionRow'
 
 const INCOME_SRCS = ['SALARY','RENTAL','FREELANCE','BUSINESS','OTHER']
 const EXP_CATS   = ['NEED','WANT','SAVINGS']
@@ -18,6 +20,7 @@ function srcBadge(s) {
 }
 
 export default function BudgetPage() {
+  const isMobile = useIsMobile()
   const { profile, loading, reload } = useProfile()
   const [incModal, setIncModal] = useState({ open:false, item:null })
   const [expModal, setExpModal] = useState({ open:false, item:null })
@@ -113,6 +116,37 @@ export default function BudgetPage() {
           <div className="empty-icon">💼</div><div className="empty-title">No income sources</div>
           <div className="empty-desc">Add salary, rental income, freelance earnings, etc.</div>
         </div></div>
+      ) : isMobile ? (
+        <div style={{marginBottom:'1.5rem'}}>
+          <div className="accordion-list">
+            {incomes.map(inc => (
+              <MobileAccordionRow
+                key={inc.id}
+                summaryLeft={<span className={srcBadge(inc.source)}>{inc.source}</span>}
+                summaryRight={<span className="text-gain">{formatINR(inc.amountInr)}</span>}
+                actions={
+                  <>
+                    <button className="btn btn-ghost btn-sm" onClick={()=>openEditInc(inc)}>Edit</button>
+                    <button className="btn btn-danger btn-sm" onClick={()=>delInc(inc.id)}>Del</button>
+                  </>
+                }
+              >
+                <span className="accordion-detail-label">Amount</span>
+                <span style={{fontWeight:600}}>{inc.amount?.toLocaleString()} {inc.currency}</span>
+                
+                <span className="accordion-detail-label">Frequency</span>
+                <span className="badge badge--default" style={{alignSelf:'start'}}>{inc.frequency}</span>
+                
+                <span className="accordion-detail-label">Amount (INR)</span>
+                <span className="text-gain">{formatINR(inc.amountInr)}</span>
+              </MobileAccordionRow>
+            ))}
+          </div>
+          <div className="table-footer" style={{ borderRadius: 'var(--radius-card)', border: '1px solid var(--color-border)', marginTop: '0.5rem' }}>
+            <span>Annual income</span>
+            <span className="table-total text-gain">{formatINR(totalIncomePA)}</span>
+          </div>
+        </div>
       ) : (
         <div className="table-wrap" style={{marginBottom:'1.5rem'}}>
           <table className="data-table">
@@ -153,6 +187,52 @@ export default function BudgetPage() {
           <div className="empty-icon">🧾</div><div className="empty-title">No expenses</div>
           <div className="empty-desc">Add monthly bills, EMIs, food, travel — categorise as NEED, WANT, or SAVINGS.</div>
         </div></div>
+      ) : isMobile ? (
+        <div style={{marginBottom:'1.5rem'}}>
+          <div className="accordion-list">
+            {expenses.map(exp => (
+              <MobileAccordionRow
+                key={exp.id}
+                summaryLeft={
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', alignItems: 'flex-start' }}>
+                    <span style={{ fontWeight: 600, display: 'flex', flexWrap: 'wrap', gap: '0.25rem', alignItems: 'center' }}>
+                      {exp.name}
+                      {exp.includeInRunway === false && <span className="badge badge--default" style={{fontSize:'0.65rem'}}>No Runway</span>}
+                      {exp.includeInFIRE === false && <span className="badge badge--default" style={{fontSize:'0.65rem'}}>No FIRE</span>}
+                    </span>
+                    <span className={catBadge(exp.category)} style={{ alignSelf: 'flex-start' }}>{exp.category}</span>
+                  </div>
+                }
+                summaryRight={<span className="text-loss">{formatINR(exp.annualAmountINR)}</span>}
+                actions={
+                  <>
+                    <button className="btn btn-ghost btn-sm" onClick={()=>openEditExp(exp)}>Edit</button>
+                    <button className="btn btn-danger btn-sm" onClick={()=>delExp(exp.id)}>Del</button>
+                  </>
+                }
+              >
+                <span className="accordion-detail-label">Amount</span>
+                <span>{exp.amount?.toLocaleString()} {exp.currency}</span>
+
+                <span className="accordion-detail-label">Frequency</span>
+                <span className="badge badge--default" style={{alignSelf:'start'}}>{exp.frequency}</span>
+
+                <span className="accordion-detail-label">Monthly (INR)</span>
+                <span>{formatINR(exp.monthlyAmountINR)}</span>
+
+                <span className="accordion-detail-label">Annual (INR)</span>
+                <span className="text-loss">{formatINR(exp.annualAmountINR)}</span>
+
+                <span className="accordion-detail-label">Projected</span>
+                <span>{exp.isProjected ? 'Yes' : 'No'}</span>
+              </MobileAccordionRow>
+            ))}
+          </div>
+          <div className="table-footer" style={{ borderRadius: 'var(--radius-card)', border: '1px solid var(--color-border)', marginTop: '0.5rem' }}>
+            <span>Annual expenses</span>
+            <span className="table-total text-loss">{formatINR(totalExpensePA)}</span>
+          </div>
+        </div>
       ) : (
         <div className="table-wrap">
           <table className="data-table">

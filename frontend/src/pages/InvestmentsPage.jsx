@@ -4,6 +4,8 @@ import { useSearchParams } from 'react-router-dom'
 import Modal from '../components/common/Modal'
 import * as profileApi from '../services/profile'
 import { formatINR, formatCompact, formatPercent } from '../utils/formatCurrency'
+import useIsMobile from '../hooks/useIsMobile'
+import MobileAccordionRow from '../components/common/MobileAccordionRow'
 
 const TYPES = ['EQUITY','BONDS','DEBT','ETF','RETIRALS','FIXED_DEPOSITS','CASH_EQUIVALENT']
 const CATS  = ['METALS','LIQUID','DOMESTIC','INTERNATIONAL']
@@ -15,6 +17,7 @@ function typeBadge(t) {
 }
 
 export default function InvestmentsPage() {
+  const isMobile = useIsMobile()
   const { profile, loading, reload } = useProfile()
   const [searchParams, setSearchParams] = useSearchParams()
   const [modal,  setModal]  = useState({ open:false, item:null })
@@ -120,6 +123,50 @@ export default function InvestmentsPage() {
           <div className="empty-title">{activeFilter ? `No ${activeFilter} investments` : 'No investments yet'}</div>
           <div className="empty-desc">{activeFilter ? `No investments tagged with ${activeFilter}.` : 'Add mutual funds, stocks, NPS, FDs and more to track your portfolio.'}</div>
         </div></div>
+      ) : isMobile ? (
+        <div className="accordion-list">
+          {filteredList.map(inv => {
+            const invInr = inv.investedValueINR || inv.investedValue || 0
+            const curInr = inv.currentValueINR || inv.currentValue || 0
+            const gain = curInr - invInr
+            const pct  = invInr ? (gain/invInr)*100 : 0
+            return (
+              <MobileAccordionRow
+                key={inv.id}
+                summaryLeft={
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', alignItems: 'flex-start' }}>
+                    <span style={{ fontWeight: 600 }}>{inv.name}</span>
+                    <span className={typeBadge(inv.investmentType)} style={{ alignSelf: 'flex-start' }}>{inv.investmentType}</span>
+                  </div>
+                }
+                summaryRight={<span>{formatINR(inv.currentValueINR||inv.currentValue)}</span>}
+                actions={
+                  <>
+                    <button className="btn btn-ghost btn-sm" onClick={()=>openEdit(inv)}>Edit</button>
+                    <button className="btn btn-danger btn-sm" onClick={()=>del(inv.id)}>Del</button>
+                  </>
+                }
+              >
+                <span className="accordion-detail-label">Invested</span>
+                <span>{formatCompact(inv.investedValue, inv.currency)}</span>
+
+                <span className="accordion-detail-label">Current (INR)</span>
+                <span>{formatINR(inv.currentValueINR||inv.currentValue)}</span>
+
+                <span className="accordion-detail-label">Currency</span>
+                <span>{inv.currency}</span>
+
+                <span className="accordion-detail-label">Categories</span>
+                <div style={{display:'flex',gap:'0.25rem',flexWrap:'wrap'}}>
+                  {(inv.categories||[]).map(c=><span key={c} className="badge badge--default">{c}</span>)}
+                </div>
+
+                <span className="accordion-detail-label">Gain / Loss</span>
+                <span className={gain>=0?'text-gain':'text-loss'}>{formatINR(gain)} ({formatPercent(pct)})</span>
+              </MobileAccordionRow>
+            )
+          })}
+        </div>
       ) : (
         <div className="table-wrap">
           <table className="data-table">

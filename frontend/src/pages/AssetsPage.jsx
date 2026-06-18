@@ -3,6 +3,8 @@ import { useProfile } from '../hooks/useProfile'
 import Modal from '../components/common/Modal'
 import * as profileApi from '../services/profile'
 import { formatINR, formatPercent } from '../utils/formatCurrency'
+import useIsMobile from '../hooks/useIsMobile'
+import MobileAccordionRow from '../components/common/MobileAccordionRow'
 
 const TYPES = ['REAL_ESTATE','VEHICLE','JEWELRY','GOLD','OTHER']
 const BLANK = { name:'', type:'REAL_ESTATE', acquisitionCost:'', currentValue:'', currency:'INR' }
@@ -13,6 +15,7 @@ function typeBadge(t) {
 }
 
 export default function AssetsPage() {
+  const isMobile = useIsMobile()
   const { profile, loading, reload } = useProfile()
   const [modal,  setModal]  = useState({ open:false, item:null })
   const [form,   setForm]   = useState(BLANK)
@@ -76,6 +79,48 @@ export default function AssetsPage() {
           <div className="empty-title">No assets yet</div>
           <div className="empty-desc">Add real estate, vehicles, jewellery, gold, and other physical assets.</div>
         </div></div>
+      ) : isMobile ? (
+        <div>
+          <div className="accordion-list">
+            {list.map(a => {
+              const pct = a.percentChange || 0
+              return (
+                <MobileAccordionRow
+                  key={a.id}
+                  summaryLeft={
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', alignItems: 'flex-start' }}>
+                      <span style={{ fontWeight: 600 }}>{a.name}</span>
+                      <span className={typeBadge(a.type)} style={{ alignSelf: 'flex-start' }}>{a.type?.replace('_',' ')}</span>
+                    </div>
+                  }
+                  summaryRight={<span>{formatINR(a.currentValueINR||a.currentValue)}</span>}
+                  actions={
+                    <>
+                      <button className="btn btn-ghost btn-sm" onClick={()=>openEdit(a)}>Edit</button>
+                      <button className="btn btn-danger btn-sm" onClick={()=>del(a.id)}>Del</button>
+                    </>
+                  }
+                >
+                  <span className="accordion-detail-label">Acquisition Cost</span>
+                  <span>{formatINR(a.acquisitionCost)}</span>
+
+                  <span className="accordion-detail-label">Current Value</span>
+                  <span>{formatINR(a.currentValueINR||a.currentValue)}</span>
+
+                  <span className="accordion-detail-label">Currency</span>
+                  <span>{a.currency}</span>
+
+                  <span className="accordion-detail-label">Change %</span>
+                  <span className={pct>=0?'text-gain':'text-loss'}>{formatPercent(pct)}</span>
+                </MobileAccordionRow>
+              )
+            })}
+          </div>
+          <div className="table-footer" style={{ borderRadius: 'var(--radius-card)', border: '1px solid var(--color-border)', marginTop: '0.5rem' }}>
+            <span>Total assets: {list.length}</span>
+            <span className="table-total">Current Value: {formatINR(totalCurr)}</span>
+          </div>
+        </div>
       ) : (
         <div className="table-wrap">
           <table className="data-table">

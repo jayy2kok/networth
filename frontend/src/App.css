@@ -900,20 +900,9 @@ html, body, #root {
     grid-column: span 1;
   }
 
-  /* Tables — horizontal scroll on mobile */
+  /* Tables on mobile */
   .table-wrap {
     border-radius: 8px;
-    position: relative;
-  }
-
-  .table-wrap::after {
-    content: '';
-    position: absolute;
-    top: 0; right: 0; bottom: 0;
-    width: 24px;
-    background: linear-gradient(to right, transparent, var(--color-surface-card));
-    pointer-events: none;
-    border-radius: 0 var(--radius-card) var(--radius-card) 0;
   }
 
   /* Touch-friendly targets */
@@ -980,4 +969,91 @@ html, body, #root {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ── Mobile Accordion Row ──────────────────────── */
+.accordion-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.accordion-row {
+  background: var(--color-surface-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.accordion-row.expanded {
+  border-color: var(--color-accent);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.accordion-summary {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  gap: 0.75rem;
+  min-height: 52px; /* touch friendly */
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.accordion-chevron {
+  font-size: 0.625rem;
+  color: var(--color-text-muted);
+  transition: transform 0.2s;
+  flex-shrink: 0;
+}
+.accordion-row.expanded .accordion-chevron {
+  transform: rotate(90deg);
+}
+
+.accordion-summary-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-grow: 1;
+  gap: 0.5rem;
+}
+
+.accordion-summary-left {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 500;
+  color: var(--color-text-primary);
+}
+.accordion-summary-right {
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.accordion-details {
+  padding: 0.75rem 1rem;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.5rem 0.75rem;
+  font-size: 0.8125rem;
+  border-top: 1px dashed var(--color-border);
+  background: var(--color-surface-secondary);
+}
+
+.accordion-detail-label {
+  color: var(--color-text-secondary);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.accordion-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  padding: 0.5rem 1rem;
+  border-top: 1px solid var(--color-border-subtle);
+  background: var(--color-surface-secondary);
+}
+
 

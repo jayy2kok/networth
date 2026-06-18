@@ -3,6 +3,8 @@ import { useProfile } from '../hooks/useProfile'
 import Modal from '../components/common/Modal'
 import * as profileApi from '../services/profile'
 import { formatINR } from '../utils/formatCurrency'
+import useIsMobile from '../hooks/useIsMobile'
+import MobileAccordionRow from '../components/common/MobileAccordionRow'
 
 const TYPES      = ['HOME_LOAN','PERSONAL_LOAN','CAR_LOAN','EDUCATION_LOAN','OTHER']
 const LOAN_TYPES = ['REGULAR','OD']
@@ -15,6 +17,7 @@ function typeBadge(t) {
 }
 
 export default function LiabilitiesPage() {
+  const isMobile = useIsMobile()
   const { profile, loading, reload } = useProfile()
   const [modal,  setModal]  = useState({ open:false, item:null })
   const [form,   setForm]   = useState(BLANK)
@@ -86,6 +89,48 @@ export default function LiabilitiesPage() {
           <div className="empty-title">No liabilities</div>
           <div className="empty-desc">Add home loans, car loans, personal loans and other debts.</div>
         </div></div>
+      ) : isMobile ? (
+        <div>
+          <div className="accordion-list">
+            {list.map(l => (
+              <MobileAccordionRow
+                key={l.id}
+                summaryLeft={
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', alignItems: 'flex-start' }}>
+                    <span style={{ fontWeight: 600 }}>{l.name}</span>
+                    <span className={typeBadge(l.type)} style={{ alignSelf: 'flex-start' }}>{l.type?.replace(/_/g,' ')}</span>
+                  </div>
+                }
+                summaryRight={<span className="text-loss">{formatINR(l.outstandingAmount)}</span>}
+                actions={
+                  <>
+                    <button className="btn btn-ghost btn-sm" onClick={()=>openEdit(l)}>Edit</button>
+                    <button className="btn btn-danger btn-sm" onClick={()=>del(l.id)}>Del</button>
+                  </>
+                }
+              >
+                <span className="accordion-detail-label">Outstanding</span>
+                <span className="text-loss">{formatINR(l.outstandingAmount)}</span>
+
+                <span className="accordion-detail-label">EMI / Month</span>
+                <span>{l.emi ? formatINR(l.emi) : '—'}</span>
+
+                <span className="accordion-detail-label">Interest Rate</span>
+                <span>{l.roi != null ? `${l.roi}%` : '—'}</span>
+
+                <span className="accordion-detail-label">Loan Type</span>
+                <span className="badge badge--default" style={{alignSelf:'start'}}>{l.loanType}</span>
+
+                <span className="accordion-detail-label">Remaining EMIs</span>
+                <span>{l.remainingEmis ?? '—'}</span>
+              </MobileAccordionRow>
+            ))}
+          </div>
+          <div className="table-footer" style={{ borderRadius: 'var(--radius-card)', border: '1px solid var(--color-border)', marginTop: '0.5rem' }}>
+            <span>Total outstanding: <span className="table-total text-loss">{formatINR(totalOut)}</span></span>
+            <span>Monthly EMI: <span className="table-total text-loss">{formatINR(totalEmi)}</span></span>
+          </div>
+        </div>
       ) : (
         <div className="table-wrap">
           <table className="data-table">
