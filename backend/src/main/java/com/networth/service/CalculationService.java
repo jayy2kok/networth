@@ -59,7 +59,10 @@ public class CalculationService {
                 .mapToDouble(i -> nvl(i.getAmountInr()) * freqMultiplier(i.getFrequency()))
                 .sum();
 
-        double expensePA = sum(profile.getExpenses(), e -> nvl(e.getAnnualAmountINR()));
+        double expensePA = profile.getExpenses().stream()
+                .filter(e -> !"SAVINGS".equals(e.getCategory()))
+                .mapToDouble(e -> nvl(e.getAnnualAmountINR()))
+                .sum();
 
         double basicExpensePA = profile.getExpenses().stream()
                 .filter(e -> "NEED".equals(e.getCategory()))

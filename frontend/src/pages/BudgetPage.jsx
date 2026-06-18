@@ -35,7 +35,9 @@ export default function BudgetPage() {
   // Summary calculations
   const annualMultiplier = freq => freq==='YEARLY'?1:freq==='QUARTERLY'?4:12
   const totalIncomePA  = incomes.reduce((s,i)  => s+(i.amountInr||0)*annualMultiplier(i.frequency),0)
-  const totalExpensePA = expenses.reduce((s,e) => s+(e.annualAmountINR||0),0)
+  const totalExpensePA = expenses
+    .filter(e => e.category !== 'SAVINGS')
+    .reduce((s,e) => s+(e.annualAmountINR||0),0)
   const savingsPA      = totalIncomePA - totalExpensePA
   const savingsRate    = totalIncomePA>0 ? (savingsPA/totalIncomePA)*100 : 0
 
