@@ -16,7 +16,7 @@ info:
     name: Private
 
 servers:
-  - url: http://localhost:8080
+  - url: http://localhost:6060
     description: Local development server
 
 tags:

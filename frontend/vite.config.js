@@ -8,11 +8,11 @@ export default defineConfig({
     tailwindcss(),
   ],
   server: {
-    port: 3000,
+    port: 5050,
     // Proxy /api/* to backend during local `npm run dev`
     proxy: {
       '/api': {
-        target: 'http://localhost:8080',
+        target: 'http://localhost:6060',
         changeOrigin: true,
       },
     },

@@ -40,12 +40,12 @@ The existing Excel tracker has six key sections that this app will replicate and
 ```mermaid
 graph TB
     subgraph Docker Compose
-        subgraph Frontend["Frontend Container (Port 3000)"]
+        subgraph Frontend["Frontend Container (Port 5050)"]
             React["React App (Vite)"]
             Nginx["Nginx (Production)"]
         end
 
-        subgraph Backend["Backend Container (Port 8080)"]
+        subgraph Backend["Backend Container (Port 6060)"]
             Spring["Spring Boot 3.x"]
             JWT["JWT Auth Filter"]
             REST["REST API"]
@@ -955,16 +955,16 @@ services:
   frontend:
     build: ./frontend
     ports:
-      - "3000:80"
+      - "5050:80"
     depends_on:
       - backend
     environment:
-      - VITE_API_BASE_URL=http://localhost:8080/api
+      - VITE_API_BASE_URL=http://localhost:6060/api
 
   backend:
     build: ./backend
     ports:
-      - "8080:8080"
+      - "6060:6060"
     depends_on:
       - mongodb
     environment:
@@ -972,7 +972,7 @@ services:
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
       - JWT_SECRET=${JWT_SECRET}
-      - FRONTEND_URL=http://localhost:3000
+      - FRONTEND_URL=http://localhost:5050
 
   mongodb:
     image: mongo:7
@@ -1019,7 +1019,7 @@ RUN ./mvnw clean package -DskipTests
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 COPY --from=build /app/target/*.jar app.jar
-EXPOSE 8080
+EXPOSE 6060
 ENTRYPOINT ["java", "-jar", "app.jar"]
 ```
 
