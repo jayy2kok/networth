@@ -50,20 +50,37 @@ graph TB
             JWT["JWT Auth Filter"]
             REST["REST API"]
             CalcService["Calculation Service"]
+            CASCtrl["CAS Import Controller"]
+            MFService["MF Pricing Service"]
+            Scheduler["NAV Refresh Scheduler (6h)"]
+        end
+
+        subgraph CASParser["CAS Parser Sidecar (Port 7070)"]
+            FastAPI["FastAPI App"]
+            Parser["casparser library"]
         end
 
         subgraph DB["MongoDB Container (Port 27017)"]
             Users["users collection"]
             Profiles["financial_profiles collection"]
             Snapshots["snapshots collection"]
+            NavCache["mf_nav_cache collection"]
         end
     end
+
+    MFAPI["api.mfapi.in (External)"]
 
     User["👤 User"] --> React
     React --> REST
     REST --> JWT
     JWT --> CalcService
     CalcService --> DB
+    React -->|"POST /api/cas/import"| CASCtrl
+    CASCtrl -->|"POST /parse (PDF+password)"| FastAPI
+    CASCtrl --> DB
+    MFService -->|"GET /mf/code/latest"| MFAPI
+    Scheduler -->|"every 6h"| MFService
+    MFService --> DB
     React -->|"OAuth Redirect"| Google["Google OAuth 2.0"]
     Google -->|"Auth Code"| Spring
 ```
@@ -117,6 +134,7 @@ erDiagram
         double currentValue
         double currentValueINR
         string currency
+        boolean transactionsLinked
         array categories
         datetime createdAt
         datetime updatedAt
@@ -192,6 +210,43 @@ erDiagram
         datetime createdAt
     }
 
+    MF_INVESTMENT {
+        string amfiCode
+        string isin
+        string folio
+        string amc
+        string schemeRtaCode
+        double units
+        double latestNav
+        string navDate
+        datetime navUpdatedAt
+    }
+
+    MUTUAL_FUND_TRANSACTION {
+        string id PK
+        string investmentId FK
+        date date
+        string description
+        double amount
+        double units
+        double nav
+        double balance
+        string type
+        datetime importedAt
+    }
+
+    MF_NAV_CACHE {
+        string id PK
+        string schemeCode UK
+        string schemeName
+        string fundHouse
+        string schemeCategory
+        string isinGrowth
+        double latestNav
+        string navDate
+        datetime fetchedAt
+    }
+
     USER ||--|| FINANCIAL_PROFILE : "has one"
     USER ||--o{ SNAPSHOT : "has many"
     USER ||--|| USER_SETTINGS : "has one"
@@ -200,6 +255,8 @@ erDiagram
     FINANCIAL_PROFILE ||--o{ LIABILITY : "contains"
     FINANCIAL_PROFILE ||--o{ INCOME : "contains"
     FINANCIAL_PROFILE ||--o{ EXPENSE : "contains"
+    INVESTMENT ||--|{ MF_INVESTMENT : "specializes"
+    MF_INVESTMENT ||--o{ MUTUAL_FUND_TRANSACTION : "has many"
 ```
 
 ### ERD Notes
@@ -210,6 +267,9 @@ erDiagram
 - **FINANCIAL_PROFILE** embeds all sub-entities (investments, assets, liabilities, incomes, expenses) as nested arrays within a single MongoDB document — this avoids JOINs and keeps reads fast.
 - **INVESTMENT, ASSET, LIABILITY, INCOME, EXPENSE** each have a UUID `id` field for client-side identification and targeted CRUD operations within the embedded arrays.
 - **Multi-currency support**: Investment, Asset, Liability, Income, and Expense entities include a `currency` field with server-computed INR equivalents.
+- **MF_INVESTMENT ↔ INVESTMENT**: Specialization (subclass). CAS-imported mutual fund investments extend `INVESTMENT` with MF-specific fields (`amfiCode`, `isin`, `folio`, `units`, `latestNav`). Generated as `MFInvestment extends Investment` via OpenAPI `allOf`. The `source` field is `CAS_IMPORT`.
+- **MUTUAL_FUND_TRANSACTION**: Stored in a separate `mutual_fund_transactions` collection (not embedded in `financial_profiles`). Linked to the parent MF investment via `investmentId`. The `transactionsLinked` boolean on `INVESTMENT` indicates whether an investment has associated transaction records. Contains individual transaction records parsed from CAS statements (SIP, redemption, switch, dividend, etc.).
+- **MF_NAV_CACHE**: Separate collection caching latest NAV data from [mfapi.in](https://api.mfapi.in/). Refreshed every 6 hours by `NavRefreshScheduler`. Keyed by `schemeCode` (AMFI code).
 
 ---
 
@@ -414,7 +474,6 @@ One document per user — the core financial data.
       "isProjected": true
     }
   ],
-
   "updatedAt": "ISODate"
 }
 ```
@@ -446,6 +505,51 @@ Monthly snapshots for net worth over time chart.
   "createdAt": "ISODate"
 }
 ```
+
+### 5.4 `mf_nav_cache` (NAV caching)
+
+Separate collection for caching mutual fund NAV data from [mfapi.in](https://api.mfapi.in/). One document per AMFI scheme code.
+
+```json
+{
+  "_id": "ObjectId",
+  "schemeCode": "125497",
+  "schemeName": "HDFC Top 100 Fund - Direct Plan - Growth",
+  "fundHouse": "HDFC Mutual Fund",
+  "schemeCategory": "Equity Scheme - Large Cap Fund",
+  "isinGrowth": "INF179K01BB2",
+  "latestNav": 892.456,
+  "navDate": "20-06-2025",
+  "fetchedAt": "ISODate"
+}
+```
+
+> [!NOTE]
+> The `mf_nav_cache` collection has a unique index on `schemeCode`. Entries are refreshed every 6 hours by `NavRefreshScheduler`. The cache prevents excessive API calls to mfapi.in (free, rate-limited API). TTL-based eviction is not used — stale entries are overwritten on refresh.
+
+### 5.5 `mutual_fund_transactions` (CAS transaction history)
+
+Separate collection storing individual mutual fund transactions parsed from CAS statements. Linked to `MFInvestment` entries via `investmentId`. The parent investment's `transactionsLinked` boolean is set to `true` when transactions exist.
+
+```json
+{
+  "_id": "ObjectId",
+  "investmentId": "uuid (ref: financial_profiles.investments[].id)",
+  "userId": "ObjectId (ref: users)",
+  "date": "2024-04-15",
+  "description": "Purchase - SIP",
+  "amount": 5000.00,
+  "units": 5.603,
+  "nav": 892.456,
+  "balance": 105.603,
+  "type": "PURCHASE_SIP",
+  "dividendRate": null,
+  "importedAt": "ISODate"
+}
+```
+
+> [!NOTE]
+> Stored as a separate collection (not embedded in `financial_profiles`) to avoid document bloat — a user with 20 MF schemes and 50+ transactions each would push the profile document too large. Indexed on `investmentId` and `userId` for fast lookups. Duplicate detection during CAS re-import uses composite key: `investmentId + date + amount + units + description`.
 
 ---
 
@@ -502,6 +606,17 @@ Monthly snapshots for net worth over time chart.
 | POST | `/api/snapshots` | Take a manual snapshot of current state |
 | GET | `/api/snapshots` | Get all snapshots (for net worth over time chart) |
 | GET | `/api/snapshots/latest` | Get most recent snapshot |
+
+### 6.6 Mutual Funds (CAS Import & Live Pricing)
+
+| Method | Endpoint | Description |
+|---|---|---|
+| POST | `/api/cas/import` | Upload CAS PDF (multipart + password) → parse and import MF holdings |
+| GET | `/api/investments/{id}/transactions` | Get transaction history for a CAS-imported investment |
+| POST | `/api/investments/refresh-nav` | Manually trigger NAV refresh for all CAS-imported investments |
+
+> [!NOTE]
+> CAS import accepts `multipart/form-data` with a PDF file and password (PAN). The backend forwards the PDF to the CAS Parser sidecar (`POST http://casparser-sidecar:7070/parse`), processes the JSON response, fetches live NAVs from mfapi.in, and creates/updates `MFInvestment` entries with associated `MutualFundTransaction` records.
 
 ---
 
@@ -973,6 +1088,19 @@ services:
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
       - JWT_SECRET=${JWT_SECRET}
       - FRONTEND_URL=http://localhost:5050
+      - CASPARSER_URL=http://casparser-sidecar:7070
+      - MFAPI_BASE_URL=https://api.mfapi.in
+
+  casparser-sidecar:
+    build: ./casparser-sidecar
+    ports:
+      - "7070:7070"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7070/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
   mongodb:
     image: mongo:7
@@ -1091,6 +1219,20 @@ ENTRYPOINT ["java", "-jar", "app.jar"]
 3. React forms for each data section (Investments, Assets, Loans, Budget)
 4. Profile page (first name, last name, DOB)
 5. Settings page (personal info, currency, theme)
+
+### Phase 2.5 — Mutual Fund CAS Import & Live Pricing
+
+1. **CAS Parser sidecar**: Create `casparser-sidecar/` with FastAPI app wrapping `casparser` library, Dockerfile, add to `docker-compose.yml`
+2. **OpenAPI schema updates**: Add `MFInvestment` (allOf Investment), `MutualFundTransaction`, `CasImportResult` schemas → regenerate models
+3. **Data model**: Create `MFInvestmentEntry extends InvestmentEntry`, `MutualFundTransactionEntry`, `MfNavCacheDocument` (separate collection)
+4. **MfPricingService**: Implement mfapi.in client (fetch latest NAV, search by ISIN), NAV caching in `mf_nav_cache` collection
+5. **CasImportService**: Orchestrate CAS parsing (call sidecar), scheme matching (AMFI/ISIN), investment creation/merge, transaction dedup
+6. **NavRefreshScheduler**: `@Scheduled(fixedRate = 6h)` job to refresh all CAS-imported investment NAVs
+7. **CasImportController**: `POST /api/cas/import`, `GET /api/investments/{id}/transactions`, `POST /api/investments/refresh-nav`
+8. **Frontend CAS Drop Zone**: Drag-and-drop PDF upload component with password input
+9. **Frontend Import Flow**: "Import CAS" button on InvestmentsPage, import modal with progress and results
+10. **Frontend Transaction History**: Drill-down modal showing transaction table per MF investment
+11. **Visual distinction**: Auto-priced badge, last NAV update timestamp, read-only current value for CAS imports
 
 ### Phase 3 — Dashboard & Calculations
 

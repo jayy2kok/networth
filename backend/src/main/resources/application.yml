@@ -12,6 +12,10 @@ spring:
     serialization:
       indent-output: false
       write-dates-as-timestamps: false
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 21MB
 
 springdoc:
   swagger-ui:
@@ -26,3 +30,16 @@ logging:
   level:
     com.networth: DEBUG
     org.springframework.data.mongodb: INFO
+
+# ── Mutual Fund CAS Import ────────────────────────────────────────────────────
+casparser:
+  url: ${CASPARSER_URL:http://localhost:7070}
+
+mfapi:
+  base-url: ${MFAPI_BASE_URL:https://api.mfapi.in}
+
+# NAV refresh scheduler (default: 10-min startup delay, 6-hour fixed delay)
+nav:
+  refresh:
+    initial-delay-ms: ${NAV_REFRESH_INITIAL_DELAY_MS:600000}
+    fixed-delay-ms:   ${NAV_REFRESH_FIXED_DELAY_MS:21600000}

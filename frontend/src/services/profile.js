@@ -26,3 +26,19 @@ export const deleteIncome     = (id)        => api.delete(`/profile/incomes/${id
 export const addExpense       = (data)      => api.post('/profile/expenses', data).then(r => r.data)
 export const updateExpense    = (id, data)  => api.put(`/profile/expenses/${id}`, data).then(r => r.data)
 export const deleteExpense    = (id)        => api.delete(`/profile/expenses/${id}`).then(r => r.data)
+
+// Mutual Funds — CAS Import
+export const importCAS = (file, password) => {
+  const fd = new FormData()
+  fd.append('file', file)
+  fd.append('password', password)
+  return api.post('/cas/import', fd, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  }).then(r => r.data)
+}
+
+export const getTransactions = (investmentId, type = 'ALL') =>
+  api.get(`/investments/${investmentId}/transactions`, { params: { type } }).then(r => r.data)
+
+export const refreshNav = () =>
+  api.post('/investments/refresh-nav').then(r => r.data)

@@ -19,9 +19,27 @@ services:
     depends_on:
       mongodb:
         condition: service_healthy
+      casparser-sidecar:
+        condition: service_healthy
     environment:
       - MONGO_URI=mongodb://mongodb:27017/networth
+      - CASPARSER_URL=http://casparser-sidecar:7070
+      - MFAPI_BASE_URL=https://api.mfapi.in
     restart: on-failure
+
+  casparser-sidecar:
+    build:
+      context: ./casparser-sidecar
+      dockerfile: Dockerfile
+    ports:
+      - "7070:7070"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:7070/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
 
   mongodb:
     image: mongo:7

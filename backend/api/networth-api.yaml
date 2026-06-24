@@ -40,6 +40,8 @@ tags:
     description: Computed financial summaries and analytics
   - name: Snapshots
     description: Historical net worth snapshots
+  - name: Mutual Funds
+    description: CAS import, mutual fund live pricing, and transaction history
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Security
@@ -266,6 +268,11 @@ components:
           pattern: "^[A-Z]{3}$"
           description: ISO 4217 currency code (e.g. INR, USD, EUR). Symbol rendering handled by frontend CSS/Intl API.
           example: "INR"
+        transactionsLinked:
+          type: boolean
+          description: Whether transactions are linked for this investment
+          example: false
+          default: false
         categories:
           type: array
           items:
@@ -279,6 +286,12 @@ components:
           description: Date and time when the investment was created
           example: "2023-01-15T10:30:00Z"
           readOnly: true
+        source:
+          type: string
+          enum: [MANUAL, CAS_IMPORT]
+          description: Origin of the investment — MANUAL for user-entered, CAS_IMPORT for imported from CAS PDF
+          default: "MANUAL"
+          example: "MANUAL"
         updatedAt:
           type: string
           format: date-time
@@ -701,6 +714,225 @@ components:
           type: number
           format: double
           example: 0
+
+    # ── Mutual Fund Investment (CAS Import) ───────────────────────────────
+    MFInvestment:
+      description: |
+        A mutual fund investment imported from a CAS (Consolidated Account Statement) PDF.
+        Extends the base Investment schema with mutual-fund-specific fields for
+        live NAV pricing via mfapi.in.
+      allOf:
+        - $ref: "#/components/schemas/Investment"
+        - type: object
+          required: [amfiCode, folio, units]
+          properties:
+            amfiCode:
+              type: string
+              description: AMFI scheme code — maps to mfapi.in scheme_code for live NAV pricing
+              example: "125497"
+            isin:
+              type: string
+              description: ISIN code from CAS statement
+              example: "INF179K01BB2"
+            folio:
+              type: string
+              description: Folio number from CAS statement
+              example: "12345678 / 90"
+            amc:
+              type: string
+              description: Asset Management Company name
+              example: "HDFC Mutual Fund"
+            schemeRtaCode:
+              type: string
+              description: Scheme RTA code from CAS statement
+              example: "H522"
+            units:
+              type: number
+              format: double
+              description: Total units currently held (closing balance from CAS)
+              example: 150.603
+            latestNav:
+              type: number
+              format: double
+              description: Latest NAV used for valuation (fetched from mfapi.in)
+              readOnly: true
+              example: 892.456
+            navDate:
+              type: string
+              description: Date of the latest NAV (DD-MM-YYYY format from mfapi.in)
+              readOnly: true
+              example: "20-06-2025"
+            navUpdatedAt:
+              type: string
+              format: date-time
+              description: Timestamp when the NAV was last fetched from mfapi.in
+              readOnly: true
+
+    # ── Mutual Fund Transaction ───────────────────────────────────────────
+    MutualFundTransaction:
+      type: object
+      description: A single mutual fund transaction parsed from a CAS statement
+      properties:
+        id:
+          type: string
+          format: uuid
+          readOnly: true
+          example: "d4e5f6a7-b8c9-4123-abcd-456789012345"
+        investmentId:
+          type: string
+          format: uuid
+          description: Reference to the parent MFInvestment entry
+          example: "f47ac10b-58cc-4372-a567-0e02b2c3d479"
+        date:
+          type: string
+          format: date
+          description: Transaction date
+          example: "2024-04-15"
+        description:
+          type: string
+          description: Transaction description from CAS
+          example: "Purchase - SIP"
+        amount:
+          type: number
+          format: double
+          nullable: true
+          description: Transaction amount in INR (null for non-monetary entries like stamp duty)
+          example: 5000.00
+        units:
+          type: number
+          format: double
+          nullable: true
+          description: Units transacted (null for non-unit rows like taxes)
+          example: 5.603
+        nav:
+          type: number
+          format: double
+          nullable: true
+          description: NAV at which the transaction was executed
+          example: 892.456
+        balance:
+          type: number
+          format: double
+          nullable: true
+          description: Running unit balance after this transaction
+          example: 105.603
+        type:
+          type: string
+          enum:
+            - PURCHASE
+            - PURCHASE_SIP
+            - REDEMPTION
+            - SWITCH_IN
+            - SWITCH_OUT
+            - DIVIDEND_PAYOUT
+            - DIVIDEND_REINVESTMENT
+            - SEGREGATION
+            - STAMP_DUTY_TAX
+            - TDS_TAX
+            - STT_TAX
+            - MISC
+            - REVERSAL
+          description: Type of mutual fund transaction
+          example: "PURCHASE_SIP"
+        dividendRate:
+          type: number
+          format: double
+          nullable: true
+          description: Dividend rate (only for DIVIDEND_* transaction types)
+        importedAt:
+          type: string
+          format: date-time
+          readOnly: true
+          description: Timestamp when this transaction was imported from CAS
+
+    # ── CAS Import Result ─────────────────────────────────────────────────
+    CasImportResult:
+      type: object
+      description: Summary of a CAS PDF import operation
+      properties:
+        statementPeriod:
+          type: object
+          properties:
+            from:
+              type: string
+              example: "01-Apr-2024"
+            to:
+              type: string
+              example: "30-Jun-2025"
+        fileType:
+          type: string
+          enum: [CAMS, KFINTECH]
+          description: CAS issuer type
+          example: "CAMS"
+        investorName:
+          type: string
+          description: Investor name extracted from CAS
+          example: "Jay Rajput"
+        schemesImported:
+          type: integer
+          description: Number of new schemes imported
+          example: 5
+        schemesUpdated:
+          type: integer
+          description: Number of existing schemes updated with new data
+          example: 3
+        transactionsAdded:
+          type: integer
+          description: Number of new transactions added
+          example: 42
+        transactionsSkipped:
+          type: integer
+          description: Number of duplicate transactions skipped during merge
+          example: 10
+        schemes:
+          type: array
+          items:
+            $ref: "#/components/schemas/CasImportSchemeResult"
+          description: Per-scheme import details
+        warnings:
+          type: array
+          items:
+            type: string
+          description: Warnings encountered during import (e.g., AMFI code not found for a scheme)
+
+    CasImportSchemeResult:
+      type: object
+      description: Import result for a single mutual fund scheme
+      properties:
+        schemeName:
+          type: string
+          example: "HDFC Top 100 Fund - Direct Plan - Growth"
+        folio:
+          type: string
+          example: "12345678 / 90"
+        amfiCode:
+          type: string
+          nullable: true
+          description: AMFI scheme code (null if not resolved)
+          example: "125497"
+        status:
+          type: string
+          enum: [IMPORTED, UPDATED, FAILED]
+          description: Import status for this scheme
+          example: "IMPORTED"
+        units:
+          type: number
+          format: double
+          description: Units held as per CAS
+          example: 150.603
+        currentValue:
+          type: number
+          format: double
+          description: Current value computed from units × latest NAV
+          example: 750000.00
+        transactionsAdded:
+          type: integer
+          description: Number of transactions imported for this scheme
+          example: 12
+        warning:
+          type: string
+          nullable: true
+          description: Warning message if any issue occurred for this scheme
 
   # ──────────────────────────────────────────────────────────────────────────
   # Reusable Responses
@@ -1377,3 +1609,130 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+
+  # ── Mutual Funds (CAS Import & Live Pricing) ────────────────────────────
+  /api/cas/import:
+    post:
+      tags: [Mutual Funds]
+      operationId: importCAS
+      summary: Import mutual fund holdings from CAS PDF
+      description: |
+        Upload a CAS (Consolidated Account Statement) PDF file from CAMS or KFintech.
+        The PDF is parsed using casparser (Python sidecar) to extract mutual fund
+        holdings and transactions. Each scheme is imported as an MFInvestment under
+        the user's financial profile investments array. Live NAV is fetched from
+        mfapi.in during import.
+
+        **Merge behaviour**: Existing holdings are merged (updated), not replaced.
+        Duplicate detection uses folio + scheme + transaction_date + amount + units.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file, password]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: CAS PDF file (original from CAMS or KFintech — re-printed PDFs not supported)
+                password:
+                  type: string
+                  description: PDF password (typically your PAN number). Used only for parsing, never stored.
+                  example: "ABCDE1234F"
+      responses:
+        "200":
+          description: CAS imported successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CasImportResult"
+        "400":
+          description: Invalid PDF, wrong password, or unsupported CAS format
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+
+  /api/investments/{id}/transactions:
+    parameters:
+      - name: id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+        description: Investment UUID
+    get:
+      tags: [Mutual Funds]
+      operationId: getInvestmentTransactions
+      summary: Get transaction history for a mutual fund investment
+      description: |
+        Returns the transaction history for a CAS-imported mutual fund investment.
+        Returns an empty array for manually-created investments (source=MANUAL).
+        Transactions are ordered by date descending (most recent first).
+      parameters:
+        - name: type
+          in: query
+          required: false
+          schema:
+            type: string
+            enum:
+              - PURCHASE
+              - PURCHASE_SIP
+              - REDEMPTION
+              - SWITCH_IN
+              - SWITCH_OUT
+              - DIVIDEND_PAYOUT
+              - DIVIDEND_REINVESTMENT
+              - ALL
+            default: ALL
+          description: Filter transactions by type
+      responses:
+        "200":
+          description: List of transactions for the investment
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MutualFundTransaction"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /api/investments/refresh-nav:
+    post:
+      tags: [Mutual Funds]
+      operationId: refreshNav
+      summary: Manually trigger NAV refresh for all CAS-imported investments
+      description: |
+        Fetches the latest NAV from mfapi.in for all CAS-imported mutual fund
+        investments (source=CAS_IMPORT) and updates their currentValue as
+        units × latestNav. This is also done automatically every 6 hours
+        by the backend NavRefreshScheduler.
+      responses:
+        "200":
+          description: NAV refresh completed
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  refreshedCount:
+                    type: integer
+                    description: Number of investments with updated NAV
+                    example: 8
+                  failedCount:
+                    type: integer
+                    description: Number of investments where NAV fetch failed
+                    example: 0
+                  message:
+                    type: string
+                    example: "NAV refreshed for 8 investments"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
