@@ -673,8 +673,8 @@ html, body, #root {
 .badge--default   { background: rgba(107,114,128,0.12);color: #6B7280; }
 
 /* ── Gain/loss colours ─────────────────────────────────────────────────────── */
-.text-gain    { color: var(--color-success); font-weight: 600; }
-.text-loss    { color: var(--color-danger);  font-weight: 600; }
+.text-gain, .stat-pill-value.text-gain, .data-table td.text-gain { color: var(--color-success); font-weight: 600; }
+.text-loss, .stat-pill-value.text-loss, .data-table td.text-loss { color: var(--color-danger); font-weight: 600; }
 .text-neutral { color: var(--color-text-muted); }
 
 /* ── Stat pills row ───────────────────────────────────────────────────────── */
