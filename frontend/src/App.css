@@ -186,6 +186,7 @@ html, body, #root {
 
 .user-chip {
   display: flex;
+  text-decoration: none;
   align-items: center;
   gap: 0.625rem;
   padding: 0.5rem 0.625rem;
@@ -195,6 +196,10 @@ html, body, #root {
   transition: background-color 0.12s;
 }
 .user-chip:hover { background-color: rgba(255,255,255,0.09); }
+.user-chip:focus-visible {
+  outline: 2px solid #D4A017;
+  outline-offset: 2px;
+}
 
 .user-avatar {
   width: 30px;
@@ -568,6 +573,22 @@ html, body, #root {
   margin-top: 1.25rem;
   padding-top: 1rem;
   border-top: 1px solid var(--color-border);
+}
+
+.transaction-history-modal {
+  --color-text: var(--color-text-primary);
+  max-width: 1040px;
+}
+.transaction-history-modal,
+.transaction-history-modal .table-wrap { scrollbar-width: none; }
+.transaction-history-modal::-webkit-scrollbar,
+.transaction-history-modal .table-wrap::-webkit-scrollbar { display: none; }
+.transaction-history-modal .table-wrap:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+:root:not([data-theme="dark"]) .transaction-history-modal .data-table td:nth-child(2) span {
+  color: #334155 !important;
 }
 
 /* ── Forms ────────────────────────────────────────────────────────────────── */

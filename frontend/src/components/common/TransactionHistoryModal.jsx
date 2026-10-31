@@ -61,7 +61,7 @@ export default function TransactionHistoryModal({ open, investment, onClose }) {
 
   return (
     <div className="modal-overlay" onClick={onClose} id="txn-history-modal">
-      <div className="modal" style={{ maxWidth: 760, width: '95vw' }} onClick={e => e.stopPropagation()}>
+      <div className="modal-box transaction-history-modal" role="dialog" aria-modal="true" aria-label="Transaction History" onClick={e => e.stopPropagation()}>
 
         {/* Header */}
         <div className="modal-header">
@@ -91,7 +91,7 @@ export default function TransactionHistoryModal({ open, investment, onClose }) {
                   borderRadius: 20,
                   border: filter === t ? '1.5px solid var(--color-primary)' : '1px solid var(--color-border)',
                   background: filter === t ? 'var(--color-primary)' : 'transparent',
-                  color: filter === t ? '#fff' : 'var(--color-text-secondary)',
+                  color: filter === t ? '#1A1D27' : 'var(--color-text-secondary)',
                   fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer',
                   transition: 'all 0.15s ease',
                 }}
@@ -114,7 +114,7 @@ export default function TransactionHistoryModal({ open, investment, onClose }) {
               <div className="empty-desc">{filter !== 'ALL' ? `No ${TYPE_LABELS[filter] || filter} transactions found.` : 'No transactions found for this investment.'}</div>
             </div>
           ) : (
-            <div className="table-wrap" style={{ maxHeight: '50vh', overflowY: 'auto' }}>
+            <div className="table-wrap" tabIndex={0} role="region" aria-label="Transactions, scroll for more" style={{ maxHeight: '50vh', overflowY: 'auto' }}>
               <table className="data-table" style={{ fontSize: '0.8125rem' }}>
                 <thead>
                   <tr>

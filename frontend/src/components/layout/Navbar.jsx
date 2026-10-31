@@ -31,11 +31,6 @@ export default function Navbar() {
         <NavLink to="/settings" className={({isActive}) => `navbar-action-btn${isActive ? ' active' : ''}`} title="Settings">⚙️</NavLink>
       </div>
 
-      <div className="phase-tag">
-        <span>✅</span>
-        Phase 4 — Historical Tracking
-      </div>
-
       {/* Phase 4: Theme toggle */}
       <button
         id="theme-toggle-btn"

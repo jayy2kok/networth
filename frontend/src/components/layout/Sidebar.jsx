@@ -65,13 +65,12 @@ export default function Sidebar() {
 
       {/* User chip */}
       <div className="sidebar-footer">
-        <div className="user-chip">
+        <NavLink to="/profile" className="user-chip" aria-label="Open profile for Dev User">
           <div className="user-avatar">D</div>
           <div className="user-info">
             <div className="user-name">Dev User</div>
-            <div className="user-role">Phase 1 · Local</div>
           </div>
-        </div>
+        </NavLink>
       </div>
 
     </nav>

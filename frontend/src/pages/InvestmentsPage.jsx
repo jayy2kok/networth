@@ -44,6 +44,8 @@ export default function InvestmentsPage() {
   const [saving, setSaving] = useState(false)
   const [err,    setErr]    = useState(null)
   const [activeFilter, setActiveFilter] = useState(searchParams.get('filter') || '')
+  const [search, setSearch] = useState('')
+  const [sortBy, setSortBy] = useState('default')
 
   // CAS import state
   const [casOpen, setCasOpen] = useState(false)
@@ -64,9 +66,23 @@ export default function InvestmentsPage() {
   }
 
   const list = profile?.investments || []
-  const filteredList = activeFilter
-    ? list.filter(inv => (inv.categories || []).includes(activeFilter))
-    : list
+  const searchTerm = search.trim().toLowerCase()
+  const filteredList = list.filter(inv =>
+    (!activeFilter || (inv.categories || []).includes(activeFilter)) &&
+    (!searchTerm || [inv.name, inv.investmentType, ...(inv.categories || [])]
+      .some(value => (value || '').toLowerCase().replaceAll('_', ' ').includes(searchTerm.replaceAll('_', ' '))))
+  )
+  if (sortBy !== 'default') {
+    filteredList.sort((a, b) => {
+      if (sortBy === 'name') return (a.name || '').localeCompare(b.name || '')
+      const currentA = a.currentValueINR ?? a.currentValue ?? 0
+      const currentB = b.currentValueINR ?? b.currentValue ?? 0
+      if (sortBy === 'current') return currentB - currentA
+      const gainA = currentA - (a.investedValueINR ?? a.investedValue ?? 0)
+      const gainB = currentB - (b.investedValueINR ?? b.investedValue ?? 0)
+      return gainB - gainA
+    })
+  }
   const totalInvested = filteredList.reduce((s,i) => s+(i.investedValueINR||i.investedValue||0), 0)
   const totalCurrent  = filteredList.reduce((s,i) => s+(i.currentValueINR||i.currentValue||0), 0)
   const totalGain     = totalCurrent - totalInvested
@@ -173,11 +189,33 @@ export default function InvestmentsPage() {
         </div>
       </div>
 
+      <div className="form-group" style={{ marginBottom: '1rem' }}>
+        <label className="form-label" htmlFor="investment-search">Search investments</label>
+        <input
+          id="investment-search"
+          className="form-input"
+          type="search"
+          placeholder="Search by name, category, or type"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+        />
+      </div>
+
+      <div className="form-group" style={{ marginBottom: '1rem' }}>
+        <label className="form-label" htmlFor="investment-sort">Sort investments</label>
+        <select id="investment-sort" className="form-input" value={sortBy} onChange={e => setSortBy(e.target.value)}>
+          <option value="default">Default order</option>
+          <option value="name">Name (A–Z)</option>
+          <option value="current">Current value (highest first)</option>
+          <option value="gain">Gain/loss amount (highest first)</option>
+        </select>
+      </div>
+
       {filteredList.length === 0 ? (
         <div className="card"><div className="empty-state">
           <div className="empty-icon">📈</div>
-          <div className="empty-title">{activeFilter ? `No ${activeFilter} investments` : 'No investments yet'}</div>
-          <div className="empty-desc">{activeFilter ? `No investments tagged with ${activeFilter}.` : 'Add mutual funds, stocks, NPS, FDs and more — or import your CAS PDF for live NAV pricing.'}</div>
+          <div className="empty-title">{searchTerm ? 'No matching investments' : activeFilter ? `No ${activeFilter} investments` : 'No investments yet'}</div>
+          <div className="empty-desc">{searchTerm ? 'Try another name, category, or type, or clear the search.' : activeFilter ? `No investments tagged with ${activeFilter}.` : 'Add mutual funds, stocks, NPS, FDs and more — or import your CAS PDF for live NAV pricing.'}</div>
         </div></div>
       ) : isMobile ? (
         <div className="accordion-list">
