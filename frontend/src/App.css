@@ -206,6 +206,15 @@ html, body, #root {
 }
 .investment-sort-button:focus-visible { outline: 2px solid var(--color-text-secondary); outline-offset: 2px; }
 .investment-mobile-sort { display: flex; align-items: center; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; color: var(--color-text-secondary); }
+.investment-group { margin-bottom: 0.75rem; }
+.investment-group-header { width: 100%; display: flex; align-items: center; gap: 1rem; text-align: left; padding: 1rem; border: 1px solid var(--color-border-subtle); border-radius: 8px; background: var(--color-surface-card); color: var(--color-text-primary); font: inherit; cursor: pointer; }
+.investment-group-header:hover { border-color: var(--color-text-secondary); }
+.investment-group-header:focus-visible { outline: 2px solid var(--color-text-secondary); outline-offset: 2px; }
+.investment-group-name { flex: 1; font-weight: 700; }
+.investment-group-name small { color: var(--color-text-secondary); font-weight: 400; }
+.investment-group-stat { display: flex; flex-direction: column; text-align: right; gap: 0.2rem; }
+.investment-group-stat small { color: var(--color-text-secondary); font-size: 0.7rem; }
+@media (max-width: 600px) { .investment-group-header { flex-wrap: wrap; } .investment-group-name { flex-basis: 100%; } .investment-group-stat { flex: 1; text-align: left; } }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
 .user-chip:focus-visible {
   outline: 2px solid #D4A017;

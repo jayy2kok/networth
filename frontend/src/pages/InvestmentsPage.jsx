@@ -49,6 +49,7 @@ export default function InvestmentsPage() {
   const [search, setSearch] = useState('')
   const [sortBy, setSortBy] = useState('default')
   const [sortDirection, setSortDirection] = useState('asc')
+  const [expandedTypes, setExpandedTypes] = useState({})
   const [zerodhaStatus, setZerodhaStatus] = useState(null)
   const [zerodhaBusy, setZerodhaBusy] = useState(false)
   const callbackHandled = useRef(false)
@@ -153,6 +154,11 @@ export default function InvestmentsPage() {
   const totalCurrent  = filteredList.reduce((s,i) => s+(i.currentValueINR||i.currentValue||0), 0)
   const totalGain     = totalCurrent - totalInvested
   const gainPct       = totalInvested > 0 ? (totalGain/totalInvested)*100 : 0
+  const groups = Object.entries(filteredList.reduce((result, investment) => {
+    const type = investment.investmentType || 'OTHER'
+    ;(result[type] ||= []).push(investment)
+    return result
+  }, {}))
 
   const openAdd  = ()     => { setForm(BLANK); setErr(null); setModal({open:true,item:null,casEdit:false}) }
   const openEdit = (item) => {
@@ -282,9 +288,21 @@ export default function InvestmentsPage() {
           <div className="empty-title">{searchTerm ? 'No matching investments' : activeFilter ? `No ${activeFilter} investments` : 'No investments yet'}</div>
           <div className="empty-desc">{searchTerm ? 'Try another name, category, or type, or clear the search.' : activeFilter ? `No investments tagged with ${activeFilter}.` : 'Add mutual funds, stocks, NPS, FDs and more — or import your CAS PDF for live NAV pricing.'}</div>
         </div></div>
-      ) : isMobile ? (
+      ) : groups.map(([type, investments]) => {
+        const invested = investments.reduce((sum, inv) => sum + (inv.investedValueINR ?? inv.investedValue ?? 0), 0)
+        const current = investments.reduce((sum, inv) => sum + (inv.currentValueINR ?? inv.currentValue ?? 0), 0)
+        const gain = current - invested
+        const expanded = !!expandedTypes[type]
+        return <section className="investment-group" key={type}>
+          <button className="investment-group-header" type="button" aria-expanded={expanded}
+            onClick={() => setExpandedTypes(previous => ({ ...previous, [type]: !previous[type] }))}>
+            <span className="investment-group-name"><span aria-hidden="true">{expanded ? '−' : '+'}</span> {type.replaceAll('_', ' ')} <small>{investments.length}</small></span>
+            <span className="investment-group-stat"><small>Current value</small><strong>{formatINR(current)}</strong></span>
+            <span className={`investment-group-stat ${gain >= 0 ? 'text-gain' : 'text-loss'}`}><small>Gain / Loss</small><strong>{gain >= 0 ? '+' : ''}{formatINR(gain)}</strong></span>
+          </button>
+          {expanded && (isMobile ? (
         <div className="accordion-list">
-          {filteredList.map(inv => {
+          {investments.map(inv => {
             const invInr = inv.investedValueINR || inv.investedValue || 0
             const curInr = inv.currentValueINR || inv.currentValue || 0
             const gain = curInr - invInr
@@ -347,7 +365,7 @@ export default function InvestmentsPage() {
               <th>Currency</th><th>Categories</th><th aria-sort={sortBy === 'gain' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}>{sortButton('gain', 'Gain / Loss')}</th><th></th>
             </tr></thead>
             <tbody>
-              {filteredList.map(inv => {
+              {investments.map(inv => {
                 const invInr = inv.investedValueINR || inv.investedValue || 0
                 const curInr = inv.currentValueINR || inv.currentValue || 0
                 const gain = curInr - invInr
@@ -394,7 +412,9 @@ export default function InvestmentsPage() {
             </tbody>
           </table>
         </div>
-      )}
+          ))}
+        </section>
+      })}
 
       {/* Add/Edit Investment Modal */}
       <Modal open={modal.open} title={modal.casEdit ? '🏷️ Edit Type & Categories' : modal.item ? 'Edit Investment' : 'Add Investment'} onClose={close}>
