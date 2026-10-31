@@ -75,9 +75,9 @@ class ZerodhaServiceTest {
         assertSame(manual, investments.getFirst());
         InvestmentEntry equity = (InvestmentEntry) investments.get(1);
         assertEquals("ETF", equity.getInvestmentType());
-        assertEquals(List.of("LIQUID"), equity.getCategories());
-        assertEquals(List.of("LIQUID"), ((InvestmentEntry) investments.get(2)).getCategories());
-        assertEquals(List.of("LIQUID"), ((InvestmentEntry) investments.get(3)).getCategories());
+        assertEquals(List.of("LIQUID", "DOMESTIC", "METALS"), equity.getCategories());
+        assertEquals(List.of("LIQUID", "DOMESTIC"), ((InvestmentEntry) investments.get(2)).getCategories());
+        assertEquals(List.of("LIQUID", "DOMESTIC"), ((InvestmentEntry) investments.get(3)).getCategories());
         assertEquals(30.0, equity.getCurrentValue());
         verify(repository, never()).save(any());
     }

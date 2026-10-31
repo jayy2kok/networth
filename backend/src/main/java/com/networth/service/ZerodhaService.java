@@ -68,7 +68,7 @@ public class ZerodhaService {
                 String type = symbol.startsWith("SGB") ? "BONDS" : etf ? "ETF" : "EQUITY";
                 InvestmentEntry entry = investment(h.tradingSymbol, type, h.quantity * h.averagePrice, h.quantity * h.lastPrice, now);
                 entry.setUnits((double) h.quantity);
-                if(gold) entry.getCategories().add("METALS");
+                if (gold) entry.getCategories().add("METALS");
                 entry.setIsin(h.isin);
                 imported.add(entry);
             }
@@ -105,7 +105,7 @@ public class ZerodhaService {
     private InvestmentEntry investment(String name, String type, double invested, double current, Instant now) {
         if (name == null || name.isBlank() || !Double.isFinite(invested) || !Double.isFinite(current)) throw new IllegalArgumentException();
         return InvestmentEntry.builder().id(UUID.randomUUID().toString()).name(name).investmentType(type)
-                .categories(List.of("LIQUID", "DOMESTIC")).investedValue(invested).investedValueINR(invested)
+                .categories(new ArrayList<>(List.of("LIQUID", "DOMESTIC"))).investedValue(invested).investedValueINR(invested)
                 .currentValue(current).currentValueINR(current).currency("INR").source("ZERODHA")
                 .createdAt(now).updatedAt(now).build();
     }
