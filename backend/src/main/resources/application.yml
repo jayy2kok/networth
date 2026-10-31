@@ -38,6 +38,10 @@ casparser:
 mfapi:
   base-url: ${MFAPI_BASE_URL:https://api.mfapi.in}
 
+kite:
+  api-key: ${KITE_API_KEY:}
+  api-secret: ${KITE_API_SECRET:}
+
 # NAV refresh scheduler (default: 10-min startup delay, 6-hour fixed delay)
 nav:
   refresh:

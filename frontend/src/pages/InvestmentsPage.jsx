@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useProfile } from '../hooks/useProfile'
 import { useSearchParams } from 'react-router-dom'
 import Modal from '../components/common/Modal'
 import CasDropZone from '../components/common/CasDropZone'
 import TransactionHistoryModal from '../components/common/TransactionHistoryModal'
 import * as profileApi from '../services/profile'
+import * as zerodhaApi from '../services/zerodha'
 import { formatINR, formatCompact, formatPercent } from '../utils/formatCurrency'
 import useIsMobile from '../hooks/useIsMobile'
 import MobileAccordionRow from '../components/common/MobileAccordionRow'
@@ -19,6 +20,7 @@ function typeBadge(t) {
 }
 
 function NavBadge({ inv }) {
+  if (inv.source === 'ZERODHA') return <span className="badge badge--default" style={{ marginLeft:'0.35rem' }}>ZERODHA</span>
   if (inv.source !== 'CAS_IMPORT') return null
   return (
     <span title={inv.navDate ? `NAV: ₹${inv.latestNav?.toFixed(4)} as of ${inv.navDate}` : 'Live priced'}
@@ -46,6 +48,70 @@ export default function InvestmentsPage() {
   const [activeFilter, setActiveFilter] = useState(searchParams.get('filter') || '')
   const [search, setSearch] = useState('')
   const [sortBy, setSortBy] = useState('default')
+  const [sortDirection, setSortDirection] = useState('asc')
+  const [zerodhaStatus, setZerodhaStatus] = useState(null)
+  const [zerodhaBusy, setZerodhaBusy] = useState(false)
+  const callbackHandled = useRef(false)
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (callbackHandled.current || (!params.has('request_token') && !params.has('zerodha_state'))) return
+    callbackHandled.current = true
+    const token = params.get('request_token')
+    const correlation = params.get('zerodha_state')
+    const expected = sessionStorage.getItem('zerodha-correlation')
+    sessionStorage.removeItem('zerodha-correlation')
+    const status = params.get('status')
+    ;['request_token', 'zerodha_state', 'status', 'action'].forEach(key => params.delete(key))
+    const query = params.toString()
+    window.history.replaceState(window.history.state, '', `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash}`)
+    if (!expected || !correlation || correlation !== expected || !token || (status && status !== 'success')) {
+      setZerodhaStatus('Zerodha connection could not be verified. Please connect again.')
+      return
+    }
+    setZerodhaBusy(true)
+    setZerodhaStatus('Syncing Zerodha portfolio…')
+    zerodhaApi.syncZerodhaPortfolio(token)
+      .then(async result => {
+        await reload()
+        setZerodhaStatus(`Zerodha sync complete: ${result.equitiesCount} equities and ${result.mutualFundsCount} mutual funds.`)
+      })
+      .catch(e => setZerodhaStatus(e.response?.data?.error || 'Zerodha sync failed. Please connect again.'))
+      .finally(() => setZerodhaBusy(false))
+  }, [reload])
+
+  const connectZerodha = async () => {
+    setZerodhaBusy(true)
+    setZerodhaStatus(null)
+    try {
+      const { loginUrl } = await zerodhaApi.getZerodhaLoginUrl()
+      const url = new URL(loginUrl)
+      if (url.protocol !== 'https:' || !['kite.trade', 'kite.zerodha.com'].includes(url.hostname)) throw new Error('Invalid Zerodha login URL')
+      const correlation = crypto.randomUUID()
+      sessionStorage.setItem('zerodha-correlation', correlation)
+      url.searchParams.set('redirect_params', new URLSearchParams({ zerodha_state: correlation }).toString())
+      window.location.assign(url.toString())
+    } catch (e) {
+      sessionStorage.removeItem('zerodha-correlation')
+      setZerodhaStatus(e.response?.data?.error || e.message || 'Could not connect to Zerodha.')
+      setZerodhaBusy(false)
+    }
+  }
+
+  const toggleSort = key => {
+    if (sortBy === key) setSortDirection(direction => direction === 'asc' ? 'desc' : 'asc')
+    else {
+      setSortBy(key)
+      setSortDirection(key === 'name' ? 'asc' : 'desc')
+    }
+  }
+
+  const sortButton = (key, label) => (
+    <button type="button" className="investment-sort-button" onClick={() => toggleSort(key)}>
+      {label} <span aria-hidden="true">{sortBy === key ? (sortDirection === 'asc' ? '↑' : '↓') : '↕'}</span>
+      <span className="sr-only">{sortBy === key ? `, sorted ${sortDirection === 'asc' ? 'ascending' : 'descending'}` : ', not sorted'}</span>
+    </button>
+  )
 
   // CAS import state
   const [casOpen, setCasOpen] = useState(false)
@@ -74,13 +140,13 @@ export default function InvestmentsPage() {
   )
   if (sortBy !== 'default') {
     filteredList.sort((a, b) => {
-      if (sortBy === 'name') return (a.name || '').localeCompare(b.name || '')
+      if (sortBy === 'name') return (a.name || '').localeCompare(b.name || '') * (sortDirection === 'asc' ? 1 : -1)
       const currentA = a.currentValueINR ?? a.currentValue ?? 0
       const currentB = b.currentValueINR ?? b.currentValue ?? 0
-      if (sortBy === 'current') return currentB - currentA
+      if (sortBy === 'current') return (currentA - currentB) * (sortDirection === 'asc' ? 1 : -1)
       const gainA = currentA - (a.investedValueINR ?? a.investedValue ?? 0)
       const gainB = currentB - (b.investedValueINR ?? b.investedValue ?? 0)
-      return gainB - gainA
+      return (gainA - gainB) * (sortDirection === 'asc' ? 1 : -1)
     })
   }
   const totalInvested = filteredList.reduce((s,i) => s+(i.investedValueINR||i.investedValue||0), 0)
@@ -115,7 +181,7 @@ export default function InvestmentsPage() {
         // all other fields are managed by the import pipeline.
         payload = { ...modal.item, investmentType: form.investmentType, categories: form.categories }
       } else {
-        payload = { ...form, investedValue:+form.investedValue, currentValue:+form.currentValue }
+        payload = { ...(modal.item || {}), ...form, investedValue:+form.investedValue, currentValue:+form.currentValue }
       }
       modal.item ? await profileApi.updateInvestment(modal.item.id, payload)
                  : await profileApi.addInvestment(payload)
@@ -177,6 +243,9 @@ export default function InvestmentsPage() {
       <div className="page-header">
         <div><div className="page-title">Investments</div><div className="page-meta">{filteredList.length} of {list.length} {list.length===1?'entry':'entries'}</div></div>
         <div style={{ display:'flex', gap:'0.5rem', flexWrap:'wrap' }}>
+          <button className="btn btn-ghost" onClick={connectZerodha} disabled={zerodhaBusy}>
+            {zerodhaBusy ? 'Connecting…' : 'Connect Zerodha'}
+          </button>
           {hasCasInvestments && (
             <button id="refresh-nav-btn" className="btn btn-ghost" onClick={handleRefreshNav} disabled={refreshing}>
               {refreshing ? '⏳ Refreshing…' : '🔄 Refresh NAV'}
@@ -188,6 +257,8 @@ export default function InvestmentsPage() {
           <button className="btn btn-primary" onClick={openAdd}>+ Add Investment</button>
         </div>
       </div>
+
+      {zerodhaStatus && <div role="status" style={{ marginBottom:'1rem' }}>{zerodhaStatus}</div>}
 
       <div className="form-group" style={{ marginBottom: '1rem' }}>
         <label className="form-label" htmlFor="investment-search">Search investments</label>
@@ -201,15 +272,9 @@ export default function InvestmentsPage() {
         />
       </div>
 
-      <div className="form-group" style={{ marginBottom: '1rem' }}>
-        <label className="form-label" htmlFor="investment-sort">Sort investments</label>
-        <select id="investment-sort" className="form-input" value={sortBy} onChange={e => setSortBy(e.target.value)}>
-          <option value="default">Default order</option>
-          <option value="name">Name (A–Z)</option>
-          <option value="current">Current value (highest first)</option>
-          <option value="gain">Gain/loss amount (highest first)</option>
-        </select>
-      </div>
+      {isMobile && <div className="investment-mobile-sort" aria-label="Sort investments">
+        <span>Sort:</span> {sortButton('name', 'Name')} {sortButton('current', 'Current')} {sortButton('gain', 'Gain / Loss')}
+      </div>}
 
       {filteredList.length === 0 ? (
         <div className="card"><div className="empty-state">
@@ -278,8 +343,8 @@ export default function InvestmentsPage() {
         <div className="table-wrap">
           <table className="data-table">
             <thead><tr>
-              <th>Name</th><th>Type</th><th>Invested</th><th>Current (INR)</th>
-              <th>Currency</th><th>Categories</th><th>Gain / Loss</th><th></th>
+              <th aria-sort={sortBy === 'name' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}>{sortButton('name', 'Name')}</th><th>Type</th><th>Invested</th><th aria-sort={sortBy === 'current' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}>{sortButton('current', 'Current (INR)')}</th>
+              <th>Currency</th><th>Categories</th><th aria-sort={sortBy === 'gain' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}>{sortButton('gain', 'Gain / Loss')}</th><th></th>
             </tr></thead>
             <tbody>
               {filteredList.map(inv => {

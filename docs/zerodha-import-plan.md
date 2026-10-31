@@ -20,7 +20,37 @@ This complements the existing CAS (Consolidated Account Statement) PDF import by
 
 ---
 
-## 3. Authentication & Architecture
+## 3. How to Obtain Zerodha Kite API Key & Secret
+
+To use Kite Connect API, you need a developer app registered under Zerodha Kite Connect:
+
+1. **Sign Up / Log In to Kite Developer Console**:
+   - Visit [https://developers.kite.trade](https://developers.kite.trade) and create or log in to your developer account (note: this is a separate developer portal account, which links to your main Zerodha trading account).
+2. **Create a New App**:
+   - Click **"Create new app"**.
+   - **App Name**: e.g., `NetWorth Dashboard`.
+   - **Client ID**: Your Zerodha client ID (e.g., `AB1234`).
+   - **Redirect URL**: Set to your frontend dashboard URL:
+     ```
+     http://localhost:5050/investments
+     ```
+     *(Kite redirects back to this URL with `?request_token=...&status=success` after authorization).*
+   - **Postback URL**: Leave blank or set same as redirect URL.
+   - Complete payment for developer subscription (Zerodha charges ₹500/month for Kite Connect personal developer access).
+3. **Copy Credentials**:
+   - Once the app is created, open the app dashboard.
+   - Copy the **API Key** (`KITE_API_KEY`).
+   - Copy the **API Secret** (`KITE_API_SECRET`).
+4. **Configure in NetWorth**:
+   - Place these in your local `.env` or `docker-compose.yml`:
+     ```env
+     KITE_API_KEY=your_api_key_here
+     KITE_API_SECRET=your_api_secret_here
+     ```
+
+---
+
+## 4. Authentication & Architecture
 
 ### Key Configuration
 - Single-user / self-hosted mode:
@@ -62,7 +92,7 @@ sequenceDiagram
 
 ---
 
-## 4. Deduplication & Merge Strategy
+## 5. Deduplication & Merge Strategy
 
 - **Source Tagging**: Every entry created by this import has `source = "ZERODHA"`.
 - **Clean Replacement Policy**:
@@ -73,7 +103,7 @@ sequenceDiagram
 
 ---
 
-## 5. API Endpoints
+## 6. API Endpoints
 
 ### 1. `GET /api/zerodha/login-url`
 - **Summary**: Returns Kite Connect authorization URL.
@@ -107,7 +137,7 @@ sequenceDiagram
 
 ---
 
-## 6. Implementation Tasks Breakdown
+## 7. Implementation Tasks Breakdown
 
 ### Phase 1: Dependencies & Configuration
 - [ ] Add `com.zerodhatech.kiteconnect:kiteconnect:4.0.1` dependency to `backend/pom.xml`.

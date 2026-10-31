@@ -25,6 +25,8 @@ services:
       - MONGO_URI=mongodb://mongodb:27017/networth
       - CASPARSER_URL=http://casparser-sidecar:7070
       - MFAPI_BASE_URL=https://api.mfapi.in
+      - KITE_API_KEY=${KITE_API_KEY:-}
+      - KITE_API_SECRET=${KITE_API_SECRET:-}
     restart: on-failure
 
   casparser-sidecar:

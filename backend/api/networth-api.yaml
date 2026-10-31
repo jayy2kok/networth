@@ -42,6 +42,8 @@ tags:
     description: Historical net worth snapshots
   - name: Mutual Funds
     description: CAS import, mutual fund live pricing, and transaction history
+  - name: Zerodha
+    description: Kite Connect portfolio synchronization
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Security
@@ -288,8 +290,8 @@ components:
           readOnly: true
         source:
           type: string
-          enum: [MANUAL, CAS_IMPORT]
-          description: Origin of the investment — MANUAL for user-entered, CAS_IMPORT for imported from CAS PDF
+          enum: [MANUAL, CAS_IMPORT, ZERODHA]
+          description: Origin of the investment
           default: "MANUAL"
           example: "MANUAL"
         updatedAt:
@@ -971,6 +973,62 @@ components:
 # Paths
 # ──────────────────────────────────────────────────────────────────────────────
 paths:
+  /api/zerodha/login-url:
+    get:
+      tags: [Zerodha]
+      operationId: getZerodhaLoginUrl
+      summary: Get the Kite Connect login URL
+      responses:
+        '200':
+          description: Login URL
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [configured, loginUrl]
+                properties:
+                  configured:
+                    type: boolean
+                  loginUrl:
+                    type: string
+                    format: uri
+        '503':
+          description: Integration not configured
+  /api/zerodha/sync:
+    post:
+      tags: [Zerodha]
+      operationId: syncZerodhaPortfolio
+      summary: Replace Zerodha investments with the latest portfolio
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [requestToken]
+              properties:
+                requestToken:
+                  type: string
+                  minLength: 1
+      responses:
+        '200':
+          description: Portfolio synchronization summary
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [equitiesCount, mutualFundsCount, cashBalance, totalInvestedValue, totalCurrentValue, syncedAt]
+                properties:
+                  equitiesCount: { type: integer }
+                  mutualFundsCount: { type: integer }
+                  cashBalance: { type: number, format: double }
+                  totalInvestedValue: { type: number, format: double }
+                  totalCurrentValue: { type: number, format: double }
+                  syncedAt: { type: string, format: date-time }
+        '400': { description: Invalid request }
+        '401': { description: Zerodha authentication failed }
+        '502': { description: Zerodha request or response failed }
+        '503': { description: Integration not configured }
   # ── Authentication ────────────────────────────────────────────────────────
   /api/auth/google:
     get:
