@@ -1,5 +1,9 @@
 # Personal Net Worth Calculator — Architecture Document
 
+### Frontend theme
+
+The frontend uses TailAdmin React theme tokens and adapted layout and dashboard styles from `TailAdmin/free-react-tailwind-admin-dashboard` at revision `df1e9f37e56e0bf83030e8063f5353da2e0ecf18`. Attribution and the MIT notice are included in the adapted source. Existing React pages and Recharts remain in use. Theme preference remains stored as `nw-theme` and applied through `data-theme`.
+
 ## 1. Overview
 
 A full-stack web application that helps users track their personal net worth, track investment categories (METALS, LIQUID, DOMESTIC, INTERNATIONAL), manage assets, liabilities, budget expenses, and calculate F.I.R.E. (Financial Independence, Retire Early) goals — replacing the current Excel-based workflow.

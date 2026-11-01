@@ -5,13 +5,13 @@ const DARK_VAL   = 'dark'
 const LIGHT_VAL  = 'light'
 
 /** Reads the saved theme from localStorage, falling back to system preference. */
-function getInitialTheme() {
+export function getInitialTheme() {
   try {
     const saved = localStorage.getItem(THEME_KEY)
     if (saved === DARK_VAL || saved === LIGHT_VAL) return saved
   } catch (_) { /* storage blocked */ }
   // Fall back to system preference
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? DARK_VAL : LIGHT_VAL
+  return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? DARK_VAL : LIGHT_VAL
 }
 
 /**

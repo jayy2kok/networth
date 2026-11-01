@@ -1,13 +1,13 @@
 import { NavLink } from 'react-router-dom'
 import Navbar from './Navbar'
-import Sidebar from './Sidebar'
+import Sidebar, { NavIcon } from './Sidebar'
 
 const MOBILE_NAV = [
-  { to: '/',            icon: '🏠', label: 'Home' },
-  { to: '/investments', icon: '📈', label: 'Invest' },
-  { to: '/assets',      icon: '🏛️', label: 'Assets' },
-  { to: '/liabilities', icon: '💳', label: 'Loans' },
-  { to: '/budget',      icon: '💰', label: 'Budget' },
+  { to: '/',            icon: 'dashboard', label: 'Home' },
+  { to: '/investments', icon: 'chart', label: 'Invest' },
+  { to: '/assets',      icon: 'home', label: 'Assets' },
+  { to: '/liabilities', icon: 'card', label: 'Loans' },
+  { to: '/budget',      icon: 'budget', label: 'Budget' },
 ]
 
 export default function PageContainer({ children }) {
@@ -30,7 +30,7 @@ export default function PageContainer({ children }) {
             end={to === '/'}
             className={({ isActive }) => `mobile-nav-item${isActive ? ' active' : ''}`}
           >
-            <span className="mobile-nav-icon">{icon}</span>
+            <span className="mobile-nav-icon"><NavIcon name={icon} /></span>
             {label}
           </NavLink>
         ))}

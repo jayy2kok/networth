@@ -1,5 +1,6 @@
 import { useLocation, NavLink } from 'react-router-dom'
 import { useTheme } from '../../hooks/useTheme'
+import { NavIcon } from './Sidebar'
 
 const PAGE_META = {
   '/':            { title: 'Dashboard',   sub: 'Net worth, FIRE progress & financial overview' },
@@ -27,8 +28,8 @@ export default function Navbar() {
 
       {/* Mobile-only profile/settings links (sidebar hidden on mobile) */}
       <div className="navbar-mobile-actions">
-        <NavLink to="/profile" className={({isActive}) => `navbar-action-btn${isActive ? ' active' : ''}`} title="Profile">👤</NavLink>
-        <NavLink to="/settings" className={({isActive}) => `navbar-action-btn${isActive ? ' active' : ''}`} title="Settings">⚙️</NavLink>
+        <NavLink to="/profile" className={({isActive}) => `navbar-action-btn${isActive ? ' active' : ''}`} aria-label="Profile" title="Profile"><NavIcon name="user" /></NavLink>
+        <NavLink to="/settings" className={({isActive}) => `navbar-action-btn${isActive ? ' active' : ''}`} aria-label="Settings" title="Settings"><NavIcon name="settings" /></NavLink>
       </div>
 
       {/* Phase 4: Theme toggle */}
@@ -37,9 +38,9 @@ export default function Navbar() {
         onClick={toggleTheme}
         className="theme-toggle-btn"
         title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
-        aria-label="Toggle dark/light mode"
+        aria-label={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
       >
-        {isDark ? '☀️' : '🌙'}
+        {isDark ? '☀' : '☾'}
       </button>
     </header>
   )

@@ -17,13 +17,35 @@ const LOW_RISK   = new Set(['RETIRALS', 'FIXED_DEPOSITS', 'BONDS', 'DEBT', 'CASH
 const STABLE     = new Set(['METALS'])
 
 const RISK_COLORS = {
-  'High Risk':  '#EF4444',
-  'Low Risk':   '#3B82F6',
-  'Stable':     '#F59E0B',
+  'High Risk':  'var(--chart-red)',
+  'Low Risk':   'var(--color-accent)',
+  'Stable':     'var(--chart-orange)',
 }
 
-const EXP_COLORS  = { NEED: '#EF4444', WANT: '#F59E0B', SAVINGS: '#10B981' }
-const DOM_COLORS  = { Domestic: '#3B82F6', International: '#8B5CF6' }
+const EXP_COLORS  = { NEED: 'var(--color-accent)', WANT: 'var(--chart-orange)', SAVINGS: 'var(--chart-green)' }
+const DOM_COLORS  = { Domestic: 'var(--color-accent)', International: 'var(--chart-purple)' }
+
+const metricIcons = {
+  worth: <><path d="M4 7h16v12H4z" /><path d="M4 7V5h13M15 13h5M15 13a1 1 0 1 0 0 2h5" /></>,
+  income: <><path d="M12 3v11m-4-4 4 4 4-4" /><path d="M4 16v3h16v-3" /></>,
+  savings: <><path d="M4 11a7 7 0 0 1 7-6h3a5 5 0 0 1 5 5h2v4h-2a6 6 0 0 1-2 3v2h-3v-1H9v1H6v-3a6 6 0 0 1-2-5Z" /><path d="M8 5 6 3v4m9 4h.01" /></>,
+  fire: <><circle cx="12" cy="12" r="8" /><circle cx="12" cy="12" r="4" /><path d="M12 12 20 4m-3 0h3v3" /></>,
+}
+
+/* Adapted from TailAdmin's ecommerce metrics/metric-card.tsx and chart cards,
+ * df1e9f37e56e0bf83030e8063f5353da2e0ecf18, MIT; see App.css for license. */
+function MetricCard({ icon, title, value, children }) {
+  return (
+    <div className="card dashboard-metric">
+      <span aria-hidden="true" className="dashboard-metric-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">{metricIcons[icon]}</svg></span>
+      <div className="dashboard-metric-content">
+        <span className="dashboard-metric-title">{title}</span>
+        <h4 className="dashboard-metric-value">{value}</h4>
+        <div className="dashboard-metric-detail">{children}</div>
+      </div>
+    </div>
+  )
+}
 
 /* ── FIRE Gauge (half-circle SVG) ─────────────────────────────────────────── */
 function FireGauge({ progress = 0 }) {
@@ -33,15 +55,15 @@ function FireGauge({ progress = 0 }) {
   const ex = cx + r * Math.cos(angleRad)
   const ey = cy - r * Math.sin(angleRad)
   const largeArc = 0
-  const color = pct >= 100 ? '#10B981' : pct >= 50 ? '#F59E0B' : '#D4A017'
+  const color = pct >= 100 ? 'var(--color-success)' : pct >= 50 ? 'var(--color-warning)' : 'var(--color-accent)'
 
   return (
     <svg viewBox="0 0 180 100" style={{ width: '100%', maxWidth: 220, display: 'block', margin: '0 auto' }}>
       <defs>
         <linearGradient id="fireGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%"   stopColor="#D4A017" />
-          <stop offset="60%"  stopColor="#F59E0B" />
-          <stop offset="100%" stopColor="#10B981" />
+          <stop offset="0%"   stopColor="var(--color-accent)" />
+          <stop offset="60%"  stopColor="var(--color-warning)" />
+          <stop offset="100%" stopColor="var(--color-success)" />
         </linearGradient>
       </defs>
       {/* Track */}
@@ -67,7 +89,7 @@ function FireGauge({ progress = 0 }) {
 const inrTooltip = ({ active, payload }) => {
   if (!active || !payload?.length) return null
   return (
-    <div style={{ background: 'var(--color-surface-card)', border: '1px solid var(--color-border)',
+    <div style={{ color: 'var(--color-text-primary)', background: 'var(--color-surface-card)', border: '1px solid var(--color-border)',
       borderRadius: 8, padding: '0.5rem 0.875rem', fontSize: '0.8125rem', boxShadow: '0 4px 12px rgba(0,0,0,0.12)' }}>
       <strong>{payload[0].name}</strong>: {formatINR(payload[0].value)}
     </div>
@@ -79,7 +101,7 @@ const pctTooltip = ({ active, payload }) => {
   const total = payload[0]?.payload?.total || 1
   const pct = ((payload[0].value / total) * 100).toFixed(1)
   return (
-    <div style={{ background: 'var(--color-surface-card)', border: '1px solid var(--color-border)',
+    <div style={{ color: 'var(--color-text-primary)', background: 'var(--color-surface-card)', border: '1px solid var(--color-border)',
       borderRadius: 8, padding: '0.5rem 0.875rem', fontSize: '0.8125rem', boxShadow: '0 4px 12px rgba(0,0,0,0.12)' }}>
       <strong>{payload[0].name}</strong>: {formatINR(payload[0].value)} ({pct}%)
     </div>
@@ -193,42 +215,21 @@ export default function DashboardPage() {
   }))
 
   return (
-    <>
+    <div className="dashboard-charts-theme">
       {/* ── Primary KPI Cards ─────────────────────────────────────────────── */}
       <div className="kpi-grid">
-        <div className="kpi-card kpi-card--networth">
-          <div className="kpi-icon-bg">₹</div>
-          <div className="kpi-label">Net Worth</div>
-          <div className="kpi-value">{formatINR(s.netWorth)}</div>
-          <div className="kpi-sub">
-            Assets {formatINR(s.totalAssets)} – Liabilities {formatINR(s.totalLiabilities)}
-          </div>
-        </div>
-
-        <div className="kpi-card kpi-card--income">
-          <div className="kpi-icon-bg">📥</div>
-          <div className="kpi-label">Annual Income</div>
-          <div className="kpi-value">{formatINR(s.incomePA)}</div>
-          <div className="kpi-sub">{formatINR(s.incomePA / 12)}/month</div>
-        </div>
-
-        <div className="kpi-card kpi-card--savings">
-          <div className="kpi-icon-bg">💰</div>
-          <div className="kpi-label">Annual Savings</div>
-          <div className={`kpi-value ${s.savingsPA >= 0 ? '' : 'text-loss'}`}>{formatINR(s.savingsPA)}</div>
-          <div className="kpi-sub">
-            Rate: {s.savingsRate.toFixed(1)}% · EMI {formatINR(s.totalMonthlyEmi)}/mo
-          </div>
-        </div>
-
-        <div className="kpi-card kpi-card--fire">
-          <div className="kpi-icon-bg">🔥</div>
-          <div className="kpi-label">FIRE Progress</div>
-          <div className="kpi-value" style={{ color: '#8B5CF6' }}>{s.fireProgress.toFixed(1)}%</div>
-          <div className="kpi-sub">
-            {formatINR(s.netWorth)} / {formatINR(s.fireAmount)} target
-          </div>
-        </div>
+        <MetricCard icon="worth" title="Net Worth" value={formatINR(s.netWorth)}>
+          Assets {formatINR(s.totalAssets)} – Liabilities {formatINR(s.totalLiabilities)}
+        </MetricCard>
+        <MetricCard icon="income" title="Annual Income" value={formatINR(s.incomePA)}>
+          {formatINR(s.incomePA / 12)}/month
+        </MetricCard>
+        <MetricCard icon="savings" title="Annual Savings" value={<span className={s.savingsPA < 0 ? 'text-loss' : undefined}>{formatINR(s.savingsPA)}</span>}>
+          Rate: {s.savingsRate.toFixed(1)}% · EMI {formatINR(s.totalMonthlyEmi)}/mo
+        </MetricCard>
+        <MetricCard icon="fire" title="FIRE Progress" value={`${s.fireProgress.toFixed(1)}%`}>
+          {formatINR(s.netWorth)} / {formatINR(s.fireAmount)} target
+        </MetricCard>
       </div>
 
       {/* ── Secondary stat pills ──────────────────────────────────────────── */}
@@ -282,7 +283,7 @@ export default function DashboardPage() {
       <div className="chart-grid" style={{ marginBottom: '1rem' }}>
 
         {/* Chart 1: Domestic vs International Bar */}
-        <div className="card">
+        <div className="card rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-card)] p-5 sm:p-6">
           <div className="card-title">Investments: Domestic vs International</div>
           <div className="card-sub">Geographic allocation by current value</div>
           {domIntlData.length > 0 ? (
@@ -321,7 +322,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Chart 2: Risk Breakdown Bar */}
-        <div className="card">
+        <div className="card rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-card)] p-5 sm:p-6">
           <div className="card-title">Investments: Risk Profile</div>
           <div className="card-sub">High risk · Low risk · Stable (by current value)</div>
           {riskData.length > 0 ? (
@@ -364,7 +365,7 @@ export default function DashboardPage() {
       <div className="chart-grid" style={{ marginBottom: '1rem' }}>
 
         {/* Chart 3: Expense Pie */}
-        <div className="card">
+        <div className="card rounded-2xl border border-[var(--color-border)] bg-[var(--color-surface-card)] p-5 sm:p-6">
           <div className="card-title">Expense Breakdown</div>
           <div className="card-sub">Annual NEED / WANT / SAVINGS split</div>
           {hasExpenses ? (
@@ -378,7 +379,7 @@ export default function DashboardPage() {
                   label={renderPieLabel}
                 >
                   {expData.map(entry => (
-                    <Cell key={entry.name} fill={EXP_COLORS[entry.name] || '#6B7280'} />
+                    <Cell key={entry.name} fill={EXP_COLORS[entry.name] || 'var(--color-text-secondary)'} stroke="var(--color-surface-card)" />
                   ))}
                 </Pie>
                 <Tooltip content={inrTooltip} />
@@ -390,7 +391,7 @@ export default function DashboardPage() {
                     return `${name} ${pct}%`
                   }}
                   iconType="circle" iconSize={8}
-                  wrapperStyle={{ fontSize: '0.75rem' }}
+                  wrapperStyle={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)' }}
                 />
               </PieChart>
             </ResponsiveContainer>
@@ -426,8 +427,8 @@ export default function DashboardPage() {
           </div>
 
           {/* Retirement age editor */}
-          <div style={{ marginTop: '0.875rem', padding: '0.75rem', background: 'rgba(212,160,23,0.06)',
-            border: '1px solid rgba(212,160,23,0.2)', borderRadius: '8px',
+          <div style={{ marginTop: '0.875rem', padding: '0.75rem', background: 'color-mix(in srgb, var(--color-accent) 6%, var(--color-surface-card))',
+            border: '1px solid color-mix(in srgb, var(--color-accent) 25%, var(--color-border))', borderRadius: '8px',
             display: 'flex', alignItems: 'center', gap: '0.625rem', flexWrap: 'wrap' }}>
             <span className="retire-editor-text" style={{ color: 'var(--color-text-secondary)' }}>Retire at:</span>
             {editingRetAge ? (
@@ -530,9 +531,9 @@ export default function DashboardPage() {
                 stroke="var(--color-accent)" strokeWidth={2.5} dot={{ r: 3.5, fill: 'var(--color-accent)' }}
                 activeDot={{ r: 5 }} />
               <Line type="monotone" dataKey="assets" name="Total Assets"
-                stroke="var(--color-success)" strokeWidth={1.5} strokeDasharray="4 2" dot={false} />
+                stroke="var(--chart-green)" strokeWidth={1.5} strokeDasharray="4 2" dot={false} />
               <Line type="monotone" dataKey="liabilities" name="Liabilities"
-                stroke="var(--color-danger)" strokeWidth={1.5} strokeDasharray="4 2" dot={false} />
+                stroke="var(--chart-red)" strokeWidth={1.5} strokeDasharray="4 2" dot={false} />
             </LineChart>
           </ResponsiveContainer>
         ) : (
@@ -561,6 +562,6 @@ export default function DashboardPage() {
           </>
         )}
       </div>
-    </>
+    </div>
   )
 }

@@ -28,7 +28,7 @@ function NavBadge({ inv }) {
         display:'inline-flex', alignItems:'center', gap:'0.2rem',
         padding:'0.1rem 0.45rem', borderRadius:4,
         fontSize:'0.65rem', fontWeight:700,
-        background:'rgba(99,102,241,0.12)', color:'#6366f1',
+        background:'color-mix(in srgb, var(--color-accent) 12%, transparent)', color:'var(--color-accent)',
         marginLeft:'0.35rem', verticalAlign:'middle',
         cursor:'default'
       }}>
