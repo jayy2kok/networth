@@ -1,5 +1,9 @@
 # Personal Net Worth Calculator — Architecture Document
 
+### Proposed AI analysis integration
+
+The [AI portfolio MCP and monitoring plan](ai-portfolio-mcp-plan.md) proposes migrating MongoDB to Atlas Free and deploying a separate stateless Spring Boot/Spring AI MCP service on Oracle Cloud behind Nginx, TLS and a stable DuckDNS hostname. Networth and Hermes remain on the home server. Networth manages owner-scoped API keys; MCP verifies hashed key records and reads permitted data directly from Atlas using a separate read-only database credential. Client-specific OAuth may also be required. This supersedes the earlier embedded-adapter/optional-gateway proposal and is not implemented: existing local MongoDB configuration remains current. Authentication, ownership, migration/restore validation, shared-schema/calculation compatibility and data-quality disclosure are prerequisites.
+
 ### Frontend theme
 
 The frontend uses TailAdmin React theme tokens and adapted layout and dashboard styles from `TailAdmin/free-react-tailwind-admin-dashboard` at revision `df1e9f37e56e0bf83030e8063f5353da2e0ecf18`. Attribution and the MIT notice are included in the adapted source. Existing React pages and Recharts remain in use. Theme preference remains stored as `nw-theme` and applied through `data-theme`.
