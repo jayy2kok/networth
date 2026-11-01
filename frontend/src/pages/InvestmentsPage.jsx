@@ -9,6 +9,7 @@ import * as zerodhaApi from '../services/zerodha'
 import { formatINR, formatCompact, formatPercent } from '../utils/formatCurrency'
 import useIsMobile from '../hooks/useIsMobile'
 import MobileAccordionRow from '../components/common/MobileAccordionRow'
+import GroupName from '../components/common/GroupName'
 
 const TYPES = ['EQUITY','BONDS','DEBT','ETF','RETIRALS','FIXED_DEPOSITS','CASH_EQUIVALENT']
 const CATS  = ['METALS','LIQUID','DOMESTIC','INTERNATIONAL']
@@ -298,7 +299,7 @@ export default function InvestmentsPage() {
         return <section className="investment-group" key={type}>
           <button className="investment-group-header" type="button" aria-expanded={expanded}
             onClick={() => setExpandedTypes(previous => ({ ...previous, [type]: !previous[type] }))}>
-            <span className="investment-group-name"><span aria-hidden="true">{expanded ? '−' : '+'}</span> {type.replaceAll('_', ' ')} <small>{investments.length}</small></span>
+            <GroupName type={type} count={investments.length} />
             <span className="investment-group-stat"><small>Invested</small><strong>{formatINR(invested)}</strong></span>
             <span className="investment-group-stat"><small>Current value</small><strong>{formatINR(current)}</strong></span>
             <span className="investment-group-stat"><small>Allocation</small><strong>{allocation(current)}</strong></span>

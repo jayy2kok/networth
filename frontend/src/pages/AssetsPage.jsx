@@ -5,6 +5,7 @@ import * as profileApi from '../services/profile'
 import { formatINR, formatPercent } from '../utils/formatCurrency'
 import useIsMobile from '../hooks/useIsMobile'
 import MobileAccordionRow from '../components/common/MobileAccordionRow'
+import GroupName from '../components/common/GroupName'
 
 const TYPES = ['REAL_ESTATE','VEHICLE','JEWELRY','GOLD','OTHER']
 const BLANK = { name:'', type:'REAL_ESTATE', acquisitionCost:'', currentValue:'', currency:'INR' }
@@ -92,7 +93,7 @@ export default function AssetsPage() {
         const expanded = !!expandedTypes[type]
         return <section className="investment-group" key={type}>
           <button type="button" className="investment-group-header" aria-expanded={expanded} onClick={() => setExpandedTypes(previous => ({...previous, [type]: !previous[type]}))}>
-            <span className="investment-group-name">{expanded ? '−' : '+'} {type.replaceAll('_', ' ')} <small>{items.length}</small></span>
+            <GroupName type={type} count={items.length} />
             <span className="investment-group-stat"><small>Acquisition Cost</small><strong>{formatINR(acquired)}</strong></span>
             <span className="investment-group-stat"><small>Current Value</small><strong>{formatINR(current)}</strong></span>
             <span className="investment-group-stat"><small>Appreciation</small><strong>{formatINR(current - acquired)}</strong></span>

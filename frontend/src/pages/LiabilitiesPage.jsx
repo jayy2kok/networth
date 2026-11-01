@@ -5,6 +5,7 @@ import * as profileApi from '../services/profile'
 import { formatINR } from '../utils/formatCurrency'
 import useIsMobile from '../hooks/useIsMobile'
 import MobileAccordionRow from '../components/common/MobileAccordionRow'
+import GroupName from '../components/common/GroupName'
 
 const TYPES      = ['HOME_LOAN','PERSONAL_LOAN','CAR_LOAN','EDUCATION_LOAN','OTHER']
 const LOAN_TYPES = ['REGULAR','OD']
@@ -102,7 +103,7 @@ export default function LiabilitiesPage() {
         const expanded = !!expandedTypes[type]
         return <section className="investment-group" key={type}>
           <button type="button" className="investment-group-header" aria-expanded={expanded} onClick={() => setExpandedTypes(previous => ({...previous, [type]: !previous[type]}))}>
-            <span className="investment-group-name">{expanded ? '−' : '+'} {type.replaceAll('_', ' ')} <small>{items.length}</small></span>
+            <GroupName type={type} count={items.length} />
             <span className="investment-group-stat"><small>Outstanding</small><strong>{formatINR(outstanding)}</strong></span>
             <span className="investment-group-stat"><small>Monthly EMI</small><strong>{formatINR(emi)}</strong></span>
             <span className="investment-group-stat"><small>Allocation</small><strong>{allocation(outstanding)}</strong></span>
