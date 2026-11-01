@@ -21,11 +21,18 @@ export default function AssetsPage() {
   const [form,   setForm]   = useState(BLANK)
   const [saving, setSaving] = useState(false)
   const [err,    setErr]    = useState(null)
+  const [expandedTypes, setExpandedTypes] = useState({})
 
   const list = profile?.assets || []
   const totalAcq  = list.reduce((s,a) => s+(a.acquisitionCost||0), 0)
-  const totalCurr = list.reduce((s,a) => s+(a.currentValueINR||a.currentValue||0), 0)
+  const totalCurr = list.reduce((s,a) => s+(a.currentValueINR??a.currentValue??0), 0)
   const totalGain = totalCurr - totalAcq
+  const allocation = value => `${(totalCurr ? value / totalCurr * 100 : 0).toFixed(2)}%`
+  const groups = Object.entries(list.reduce((result, item) => {
+    const type = item.type || 'OTHER'
+    ;(result[type] ||= []).push(item)
+    return result
+  }, {}))
 
   const openAdd  = ()     => { setForm(BLANK); setErr(null); setModal({open:true,item:null}) }
   const openEdit = (item) => {
@@ -79,10 +86,22 @@ export default function AssetsPage() {
           <div className="empty-title">No assets yet</div>
           <div className="empty-desc">Add real estate, vehicles, jewellery, gold, and other physical assets.</div>
         </div></div>
-      ) : isMobile ? (
+      ) : groups.map(([type, items]) => {
+        const current = items.reduce((sum, a) => sum + (a.currentValueINR ?? a.currentValue ?? 0), 0)
+        const acquired = items.reduce((sum, a) => sum + (a.acquisitionCost ?? 0), 0)
+        const expanded = !!expandedTypes[type]
+        return <section className="investment-group" key={type}>
+          <button type="button" className="investment-group-header" aria-expanded={expanded} onClick={() => setExpandedTypes(previous => ({...previous, [type]: !previous[type]}))}>
+            <span className="investment-group-name">{expanded ? '−' : '+'} {type.replaceAll('_', ' ')} <small>{items.length}</small></span>
+            <span className="investment-group-stat"><small>Acquisition Cost</small><strong>{formatINR(acquired)}</strong></span>
+            <span className="investment-group-stat"><small>Current Value</small><strong>{formatINR(current)}</strong></span>
+            <span className="investment-group-stat"><small>Appreciation</small><strong>{formatINR(current - acquired)}</strong></span>
+            <span className="investment-group-stat"><small>Allocation</small><strong>{allocation(current)}</strong></span>
+          </button>
+          {expanded && (isMobile ? (
         <div>
           <div className="accordion-list">
-            {list.map(a => {
+            {items.map(a => {
               const pct = a.percentChange || 0
               return (
                 <MobileAccordionRow
@@ -93,7 +112,7 @@ export default function AssetsPage() {
                       <span className={typeBadge(a.type)} style={{ alignSelf: 'flex-start' }}>{a.type?.replace('_',' ')}</span>
                     </div>
                   }
-                  summaryRight={<span>{formatINR(a.currentValueINR||a.currentValue)}</span>}
+                  summaryRight={<span>{formatINR(a.currentValueINR??a.currentValue)} · {allocation(a.currentValueINR??a.currentValue??0)}</span>}
                   actions={
                     <>
                       <button className="btn btn-ghost btn-sm" onClick={()=>openEdit(a)}>Edit</button>
@@ -105,7 +124,7 @@ export default function AssetsPage() {
                   <span>{formatINR(a.acquisitionCost)}</span>
 
                   <span className="accordion-detail-label">Current Value</span>
-                  <span>{formatINR(a.currentValueINR||a.currentValue)}</span>
+                  <span>{formatINR(a.currentValueINR??a.currentValue)}</span>
 
                   <span className="accordion-detail-label">Currency</span>
                   <span>{a.currency}</span>
@@ -117,8 +136,8 @@ export default function AssetsPage() {
             })}
           </div>
           <div className="table-footer" style={{ borderRadius: 'var(--radius-card)', border: '1px solid var(--color-border)', marginTop: '0.5rem' }}>
-            <span>Total assets: {list.length}</span>
-            <span className="table-total">Current Value: {formatINR(totalCurr)}</span>
+            <span>Assets: {items.length}</span>
+            <span className="table-total">Current Value: {formatINR(current)}</span>
           </div>
         </div>
       ) : (
@@ -126,17 +145,18 @@ export default function AssetsPage() {
           <table className="data-table">
             <thead><tr>
               <th>Name</th><th>Type</th><th>Acquisition Cost</th><th>Current Value (INR)</th>
-              <th>Currency</th><th>Change %</th><th></th>
+              <th>Percent</th><th>Currency</th><th>Change %</th><th></th>
             </tr></thead>
             <tbody>
-              {list.map(a => {
+              {items.map(a => {
                 const pct = a.percentChange || 0
                 return (
                   <tr key={a.id}>
                     <td style={{fontWeight:600}}>{a.name}</td>
                     <td><span className={typeBadge(a.type)}>{a.type?.replace('_',' ')}</span></td>
                     <td>{formatINR(a.acquisitionCost)}</td>
-                    <td>{formatINR(a.currentValueINR||a.currentValue)}</td>
+                    <td>{formatINR(a.currentValueINR??a.currentValue)}</td>
+                    <td>{allocation(a.currentValueINR??a.currentValue??0)}</td>
                     <td style={{color:'var(--color-text-secondary)'}}>{a.currency}</td>
                     <td className={pct>=0?'text-gain':'text-loss'}>{formatPercent(pct)}</td>
                     <td><div className="actions-cell">
@@ -149,11 +169,13 @@ export default function AssetsPage() {
             </tbody>
           </table>
           <div className="table-footer">
-            <span>Total assets: {list.length}</span>
-            <span className="table-total">Current Value: {formatINR(totalCurr)}</span>
+            <span>Assets: {items.length}</span>
+            <span className="table-total">Current Value: {formatINR(current)}</span>
           </div>
         </div>
-      )}
+          ))}
+        </section>
+      })}
 
       <Modal open={modal.open} title={modal.item?'Edit Asset':'Add Asset'} onClose={close}>
         <div className="form-grid">

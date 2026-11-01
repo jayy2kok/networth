@@ -4,6 +4,10 @@
 
 The frontend uses TailAdmin React theme tokens and adapted layout and dashboard styles from `TailAdmin/free-react-tailwind-admin-dashboard` at revision `df1e9f37e56e0bf83030e8063f5353da2e0ecf18`. Attribution and the MIT notice are included in the adapted source. Existing React pages and Recharts remain in use. Theme preference remains stored as `nw-theme` and applied through `data-theme`.
 
+### Portfolio allocation and rollups
+
+Investments, assets and liabilities are grouped by type with collapsible summary totals. Each entry and group displays its share of the overall total for its own category; investment filters do not change the denominator. Investment and asset values use the available INR value with a fallback to the original value, while liabilities use outstanding amounts directly. Existing currency limitations therefore remain: fallback and liability totals may combine currencies, and asset acquisition costs are not converted here.
+
 ## 1. Overview
 
 A full-stack web application that helps users track their personal net worth, track investment categories (METALS, LIQUID, DOMESTIC, INTERNATIONAL), manage assets, liabilities, budget expenses, and calculate F.I.R.E. (Financial Independence, Retire Early) goals — replacing the current Excel-based workflow.

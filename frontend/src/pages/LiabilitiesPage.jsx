@@ -23,10 +23,17 @@ export default function LiabilitiesPage() {
   const [form,   setForm]   = useState(BLANK)
   const [saving, setSaving] = useState(false)
   const [err,    setErr]    = useState(null)
+  const [expandedTypes, setExpandedTypes] = useState({})
 
   const list = profile?.liabilities || []
   const totalOut = list.reduce((s,l) => s+(l.outstandingAmount||0), 0)
   const totalEmi = list.reduce((s,l) => s+(l.emi||0), 0)
+  const allocation = value => `${(totalOut ? value / totalOut * 100 : 0).toFixed(2)}%`
+  const groups = Object.entries(list.reduce((result, item) => {
+    const type = item.type || 'OTHER'
+    ;(result[type] ||= []).push(item)
+    return result
+  }, {}))
 
   const openAdd  = ()     => { setForm(BLANK); setErr(null); setModal({open:true,item:null}) }
   const openEdit = (item) => {
@@ -89,10 +96,21 @@ export default function LiabilitiesPage() {
           <div className="empty-title">No liabilities</div>
           <div className="empty-desc">Add home loans, car loans, personal loans and other debts.</div>
         </div></div>
-      ) : isMobile ? (
+      ) : groups.map(([type, items]) => {
+        const outstanding = items.reduce((sum, item) => sum + (item.outstandingAmount ?? 0), 0)
+        const emi = items.reduce((sum, item) => sum + (item.emi ?? 0), 0)
+        const expanded = !!expandedTypes[type]
+        return <section className="investment-group" key={type}>
+          <button type="button" className="investment-group-header" aria-expanded={expanded} onClick={() => setExpandedTypes(previous => ({...previous, [type]: !previous[type]}))}>
+            <span className="investment-group-name">{expanded ? '−' : '+'} {type.replaceAll('_', ' ')} <small>{items.length}</small></span>
+            <span className="investment-group-stat"><small>Outstanding</small><strong>{formatINR(outstanding)}</strong></span>
+            <span className="investment-group-stat"><small>Monthly EMI</small><strong>{formatINR(emi)}</strong></span>
+            <span className="investment-group-stat"><small>Allocation</small><strong>{allocation(outstanding)}</strong></span>
+          </button>
+          {expanded && (isMobile ? (
         <div>
           <div className="accordion-list">
-            {list.map(l => (
+            {items.map(l => (
               <MobileAccordionRow
                 key={l.id}
                 summaryLeft={
@@ -101,7 +119,7 @@ export default function LiabilitiesPage() {
                     <span className={typeBadge(l.type)} style={{ alignSelf: 'flex-start' }}>{l.type?.replace(/_/g,' ')}</span>
                   </div>
                 }
-                summaryRight={<span className="text-loss">{formatINR(l.outstandingAmount)}</span>}
+                summaryRight={<span className="text-loss">{formatINR(l.outstandingAmount)} · {allocation(l.outstandingAmount ?? 0)}</span>}
                 actions={
                   <>
                     <button className="btn btn-ghost btn-sm" onClick={()=>openEdit(l)}>Edit</button>
@@ -127,8 +145,8 @@ export default function LiabilitiesPage() {
             ))}
           </div>
           <div className="table-footer" style={{ borderRadius: 'var(--radius-card)', border: '1px solid var(--color-border)', marginTop: '0.5rem' }}>
-            <span>Total outstanding: <span className="table-total text-loss">{formatINR(totalOut)}</span></span>
-            <span>Monthly EMI: <span className="table-total text-loss">{formatINR(totalEmi)}</span></span>
+            <span>Total outstanding: <span className="table-total text-loss">{formatINR(outstanding)}</span></span>
+            <span>Monthly EMI: <span className="table-total text-loss">{formatINR(emi)}</span></span>
           </div>
         </div>
       ) : (
@@ -136,15 +154,16 @@ export default function LiabilitiesPage() {
           <table className="data-table">
             <thead><tr>
               <th>Name</th><th>Type</th><th>Outstanding</th><th>EMI/mo</th>
-              <th>ROI %</th><th>Loan Type</th><th>Rem. EMIs</th><th></th>
+              <th>Percent</th><th>ROI %</th><th>Loan Type</th><th>Rem. EMIs</th><th></th>
             </tr></thead>
             <tbody>
-              {list.map(l => (
+              {items.map(l => (
                 <tr key={l.id}>
                   <td style={{fontWeight:600}}>{l.name}</td>
                   <td><span className={typeBadge(l.type)}>{l.type?.replace(/_/g,' ')}</span></td>
                   <td className="text-loss">{formatINR(l.outstandingAmount)}</td>
                   <td>{l.emi ? formatINR(l.emi) : '—'}</td>
+                  <td>{allocation(l.outstandingAmount ?? 0)}</td>
                   <td>{l.roi != null ? `${l.roi}%` : '—'}</td>
                   <td><span className="badge badge--default">{l.loanType}</span></td>
                   <td>{l.remainingEmis ?? '—'}</td>
@@ -157,11 +176,13 @@ export default function LiabilitiesPage() {
             </tbody>
           </table>
           <div className="table-footer">
-            <span>Total outstanding: <span className="table-total text-loss">{formatINR(totalOut)}</span></span>
-            <span>Monthly EMI: <span className="table-total text-loss">{formatINR(totalEmi)}</span></span>
+            <span>Total outstanding: <span className="table-total text-loss">{formatINR(outstanding)}</span></span>
+            <span>Monthly EMI: <span className="table-total text-loss">{formatINR(emi)}</span></span>
           </div>
         </div>
-      )}
+          ))}
+        </section>
+      })}
 
       <Modal open={modal.open} title={modal.item?'Edit Loan':'Add Loan'} onClose={close}>
         <div className="form-grid">

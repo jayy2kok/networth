@@ -150,8 +150,10 @@ export default function InvestmentsPage() {
       return (gainA - gainB) * (sortDirection === 'asc' ? 1 : -1)
     })
   }
-  const totalInvested = filteredList.reduce((s,i) => s+(i.investedValueINR||i.investedValue||0), 0)
-  const totalCurrent  = filteredList.reduce((s,i) => s+(i.currentValueINR||i.currentValue||0), 0)
+  const totalInvested = filteredList.reduce((s,i) => s+(i.investedValueINR??i.investedValue??0), 0)
+  const totalCurrent  = filteredList.reduce((s,i) => s+(i.currentValueINR??i.currentValue??0), 0)
+  const portfolioTotal = list.reduce((s,i) => s+(i.currentValueINR??i.currentValue??0), 0)
+  const allocation = value => `${(portfolioTotal ? value / portfolioTotal * 100 : 0).toFixed(2)}%`
   const totalGain     = totalCurrent - totalInvested
   const gainPct       = totalInvested > 0 ? (totalGain/totalInvested)*100 : 0
   const groups = Object.entries(filteredList.reduce((result, investment) => {
@@ -297,14 +299,16 @@ export default function InvestmentsPage() {
           <button className="investment-group-header" type="button" aria-expanded={expanded}
             onClick={() => setExpandedTypes(previous => ({ ...previous, [type]: !previous[type] }))}>
             <span className="investment-group-name"><span aria-hidden="true">{expanded ? '−' : '+'}</span> {type.replaceAll('_', ' ')} <small>{investments.length}</small></span>
+            <span className="investment-group-stat"><small>Invested</small><strong>{formatINR(invested)}</strong></span>
             <span className="investment-group-stat"><small>Current value</small><strong>{formatINR(current)}</strong></span>
+            <span className="investment-group-stat"><small>Allocation</small><strong>{allocation(current)}</strong></span>
             <span className={`investment-group-stat ${gain >= 0 ? 'text-gain' : 'text-loss'}`}><small>Gain / Loss</small><strong>{gain >= 0 ? '+' : ''}{formatINR(gain)}</strong></span>
           </button>
           {expanded && (isMobile ? (
         <div className="accordion-list">
           {investments.map(inv => {
-            const invInr = inv.investedValueINR || inv.investedValue || 0
-            const curInr = inv.currentValueINR || inv.currentValue || 0
+            const invInr = inv.investedValueINR ?? inv.investedValue ?? 0
+            const curInr = inv.currentValueINR ?? inv.currentValue ?? 0
             const gain = curInr - invInr
             const pct  = invInr ? (gain/invInr)*100 : 0
             const isCas = inv.source === 'CAS_IMPORT'
@@ -317,7 +321,7 @@ export default function InvestmentsPage() {
                     <span className={typeBadge(inv.investmentType)} style={{ alignSelf: 'flex-start' }}>{inv.investmentType}</span>
                   </div>
                 }
-                summaryRight={<span>{formatINR(inv.currentValueINR||inv.currentValue)}</span>}
+                summaryRight={<span>{formatINR(curInr)} · {allocation(curInr)}</span>}
                 actions={
                   <>
                     {isCas && inv.transactionsLinked && (
@@ -334,7 +338,7 @@ export default function InvestmentsPage() {
                 <span>{formatCompact(inv.investedValue, inv.currency)}</span>
 
                 <span className="accordion-detail-label">Current (INR)</span>
-                <span>{formatINR(inv.currentValueINR||inv.currentValue)}</span>
+                <span>{formatINR(curInr)}</span>
 
                 {isCas && inv.units != null && <>
                   <span className="accordion-detail-label">Units</span>
@@ -362,12 +366,12 @@ export default function InvestmentsPage() {
           <table className="data-table">
             <thead><tr>
               <th aria-sort={sortBy === 'name' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}>{sortButton('name', 'Name')}</th><th>Type</th><th>Invested</th><th aria-sort={sortBy === 'current' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}>{sortButton('current', 'Current (INR)')}</th>
-              <th>Currency</th><th>Categories</th><th aria-sort={sortBy === 'gain' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}>{sortButton('gain', 'Gain / Loss')}</th><th></th>
+              <th>Allocation</th><th>Currency</th><th>Categories</th><th aria-sort={sortBy === 'gain' ? (sortDirection === 'asc' ? 'ascending' : 'descending') : 'none'}>{sortButton('gain', 'Gain / Loss')}</th><th></th>
             </tr></thead>
             <tbody>
               {investments.map(inv => {
-                const invInr = inv.investedValueINR || inv.investedValue || 0
-                const curInr = inv.currentValueINR || inv.currentValue || 0
+                const invInr = inv.investedValueINR ?? inv.investedValue ?? 0
+                const curInr = inv.currentValueINR ?? inv.currentValue ?? 0
                 const gain = curInr - invInr
                 const pct  = invInr ? (gain/invInr)*100 : 0
                 const isCas = inv.source === 'CAS_IMPORT'
@@ -382,13 +386,14 @@ export default function InvestmentsPage() {
                     <td><span className={typeBadge(inv.investmentType)}>{inv.investmentType}</span></td>
                     <td>{formatCompact(inv.investedValue, inv.currency)}</td>
                     <td>
-                      {formatINR(inv.currentValueINR||inv.currentValue)}
+                      {formatINR(curInr)}
                       {isCas && inv.navDate && (
                         <div style={{ fontSize:'0.7rem', color:'var(--color-text-secondary)' }}>
                           {inv.units?.toFixed(3)} units @ ₹{inv.latestNav?.toFixed(4)}
                         </div>
                       )}
                     </td>
+                    <td>{allocation(curInr)}</td>
                     <td style={{color:'var(--color-text-secondary)'}}>{inv.currency}</td>
                     <td><div style={{display:'flex',gap:'0.25rem',flexWrap:'wrap'}}>
                       {(inv.categories||[]).map(c=><span key={c} className="badge badge--default">{c}</span>)}
