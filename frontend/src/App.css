@@ -529,6 +529,16 @@ html, body, #root {
 }
 .page-meta { font-size: 0.8125rem; color: var(--color-text-secondary); margin-top: 2px; }
 
+.investment-actions { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+.investment-actions .btn { justify-content: center; min-height: 44px; }
+@media (max-width: 767px) {
+  .investment-actions { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); width: 100%; }
+  .investment-actions .btn { width: 100%; padding-inline: 0.5rem; }
+}
+@media (max-width: 320px) {
+  .investment-actions { grid-template-columns: 1fr; }
+}
+
 /* ── Buttons ──────────────────────────────────────────────────────────────── */
 .btn {
   display: inline-flex;

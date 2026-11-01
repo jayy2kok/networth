@@ -248,9 +248,9 @@ export default function InvestmentsPage() {
 
       <div className="page-header">
         <div><div className="page-title">Investments</div><div className="page-meta">{filteredList.length} of {list.length} {list.length===1?'entry':'entries'}</div></div>
-        <div style={{ display:'flex', gap:'0.5rem', flexWrap:'wrap' }}>
+        <div className="investment-actions">
           <button className="btn btn-ghost" onClick={connectZerodha} disabled={zerodhaBusy}>
-            {zerodhaBusy ? 'Connecting…' : 'Connect Zerodha'}
+            {zerodhaBusy ? 'Connecting…' : 'Import Zerodha'}
           </button>
           {hasCasInvestments && (
             <button id="refresh-nav-btn" className="btn btn-ghost" onClick={handleRefreshNav} disabled={refreshing}>
