@@ -155,7 +155,7 @@ export default function LiabilitiesPage() {
           <table className="data-table">
             <thead><tr>
               <th>Name</th><th>Type</th><th>Outstanding</th><th>EMI/mo</th>
-              <th>Percent</th><th>ROI %</th><th>Loan Type</th><th>Rem. EMIs</th><th></th>
+              <th>Allocation</th><th>ROI %</th><th>Loan Type</th><th>Rem. EMIs</th><th></th>
             </tr></thead>
             <tbody>
               {items.map(l => (

@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback } from 'react'
 import * as profileApi from '../../services/profile'
+import Modal from './Modal'
 
 /**
  * CAS PDF drop zone modal.
@@ -75,18 +76,11 @@ export default function CasDropZone({ open, onClose, onImported }) {
   if (!open) return null
 
   return (
-    <div className="modal-overlay" onClick={handleClose} id="cas-import-modal">
-      <div className="modal" style={{ maxWidth: 500 }} onClick={e => e.stopPropagation()}>
-
-        {/* Header */}
-        <div className="modal-header">
-          <div className="modal-title">📄 Import CAS PDF</div>
-          <button className="modal-close" onClick={handleClose}>✕</button>
-        </div>
+    <Modal open={open} onClose={handleClose} title="Import CAS PDF">
 
         {result ? (
           /* ── Import Success ── */
-          <div style={{ padding: '1.5rem' }}>
+          <div>
             <div style={{
               display: 'flex', alignItems: 'center', gap: '0.75rem',
               marginBottom: '1.25rem', padding: '1rem',
@@ -110,7 +104,7 @@ export default function CasDropZone({ open, onClose, onImported }) {
                 ['Duplicates Skipped', result.transactionsSkipped],
               ].map(([label, val]) => (
                 <div key={label} style={{
-                  padding: '0.75rem', background: 'var(--color-surface)',
+                  padding: '0.75rem', background: 'var(--color-surface-secondary)',
                   borderRadius: 8, textAlign: 'center'
                 }}>
                   <div style={{ fontSize: '1.25rem', fontWeight: 700 }}>{val}</div>
@@ -142,7 +136,7 @@ export default function CasDropZone({ open, onClose, onImported }) {
 
         ) : (
           /* ── Upload Form ── */
-          <div style={{ padding: '1.5rem' }}>
+          <div>
 
             {/* Drop zone */}
             <div
@@ -152,12 +146,12 @@ export default function CasDropZone({ open, onClose, onImported }) {
               onDragLeave={onDragLeave}
               onClick={() => !file && inputRef.current?.click()}
               style={{
-                border: `2px dashed ${dragging ? 'var(--color-primary)' : file ? 'var(--color-success)' : 'rgba(148,163,184,0.35)'}`,
+                border: `2px dashed ${dragging ? 'var(--color-accent)' : file ? 'var(--color-success)' : 'var(--color-border)'}`,
                 borderRadius: 12,
                 padding: '2rem 1.5rem',
                 textAlign: 'center',
                 cursor: file ? 'default' : 'pointer',
-                background: dragging ? 'rgba(99,102,241,0.06)' : file ? 'rgba(16,185,129,0.05)' : 'var(--color-surface)',
+                background: dragging ? 'var(--color-surface-hover)' : file ? 'rgba(16,185,129,0.05)' : 'var(--color-surface-secondary)',
                 transition: 'all 0.2s ease',
                 marginBottom: '1.25rem',
               }}
@@ -182,7 +176,7 @@ export default function CasDropZone({ open, onClose, onImported }) {
                     {dragging ? 'Drop it here!' : 'Drop your CAS PDF here'}
                   </div>
                   <div style={{ fontSize: '0.8125rem', color: 'var(--color-text-secondary)' }}>
-                    or <span style={{ color: 'var(--color-primary)', textDecoration: 'underline' }}>click to browse</span>
+                    or <button type="button" onClick={e => { e.stopPropagation(); inputRef.current?.click() }} style={{ color: 'var(--color-accent)', textDecoration: 'underline', cursor: 'pointer' }}>click to browse</button>
                   </div>
                   <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: '0.5rem' }}>
                     Supports CAMS and KFintech PDFs (max 20 MB)
@@ -193,7 +187,7 @@ export default function CasDropZone({ open, onClose, onImported }) {
 
             {/* Password */}
             <div className="form-field" style={{ marginBottom: '1.25rem' }}>
-              <label className="form-label">CAS Password</label>
+              <label className="form-label" htmlFor="cas-password-input">CAS Password</label>
               <input
                 id="cas-password-input"
                 className="form-input"
@@ -217,7 +211,7 @@ export default function CasDropZone({ open, onClose, onImported }) {
               }}>
                 <div style={{
                   height: '100%', width: `${progress}%`,
-                  background: 'var(--color-primary)',
+                  background: 'var(--color-accent)',
                   transition: 'width 0.5s ease',
                   borderRadius: 2,
                 }} />
@@ -239,7 +233,6 @@ export default function CasDropZone({ open, onClose, onImported }) {
             </div>
           </div>
         )}
-      </div>
-    </div>
+    </Modal>
   )
 }

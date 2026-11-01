@@ -146,7 +146,7 @@ export default function AssetsPage() {
           <table className="data-table">
             <thead><tr>
               <th>Name</th><th>Type</th><th>Acquisition Cost</th><th>Current Value (INR)</th>
-              <th>Percent</th><th>Currency</th><th>Change %</th><th></th>
+              <th>Allocation</th><th>Currency</th><th>Change %</th><th></th>
             </tr></thead>
             <tbody>
               {items.map(a => {
