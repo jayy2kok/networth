@@ -35,8 +35,8 @@ The existing Excel tracker has six key sections that this app will replicate and
 | Frontend | React (Vite) | React 19, Vite 6 |
 | UI Charts | Recharts | Latest |
 | Styling | Tailwind CSS v4 | CSS-first config (`@theme`) |
-| Backend | Java Spring Boot | 3.x (Java 21 LTS) |
-| Build Tool | Maven | Latest |
+| Backend | Java Spring Boot | 4.1.2 (Java 25 LTS) |
+| Build Tool | Maven | 3.9.x |
 | Database | MongoDB | 7.x |
 | Authentication | Google OAuth 2.0 (via Spring Security) | — |
 | Containerization | Docker + Docker Compose | — |
@@ -54,7 +54,7 @@ graph TB
         end
 
         subgraph Backend["Backend Container (Port 6060)"]
-            Spring["Spring Boot 3.x"]
+            Spring["Spring Boot 4.1.x"]
             JWT["JWT Auth Filter"]
             REST["REST API"]
             CalcService["Calculation Service"]

@@ -4,14 +4,12 @@ server:
 spring:
   application:
     name: networth-backend
-  data:
-    mongodb:
-      uri: ${MONGO_URI:mongodb://localhost:27017/networth}
+  mongodb:
+    uri: ${MONGO_URI:mongodb://localhost:27017/networth}
   jackson:
     default-property-inclusion: non_null
     serialization:
       indent-output: false
-      write-dates-as-timestamps: false
   servlet:
     multipart:
       max-file-size: 20MB

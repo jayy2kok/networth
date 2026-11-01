@@ -5,10 +5,10 @@ import org.springframework.boot.test.context.SpringBootTest;
 
 /**
  * Verifies the Spring application context loads successfully.
- * Uses Flapdoodle embedded MongoDB (de.flapdoodle.embed.mongo.spring3x)
+ * Uses Flapdoodle embedded MongoDB (de.flapdoodle.embed.mongo.spring4x)
  * to satisfy the MongoDB dependency without a real connection.
  */
-@SpringBootTest
+@SpringBootTest(properties = "de.flapdoodle.mongodb.embedded.version=7.0.16")
 class NetworthApplicationTests {
 
     @Test
