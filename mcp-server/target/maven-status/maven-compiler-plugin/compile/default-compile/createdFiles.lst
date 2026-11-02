@@ -1,0 +1,5 @@
+com\networth\mcp\NetworthMcpApplication.class
+com\networth\mcp\PortfolioTools.class
+com\networth\mcp\service\PortfolioReadService.class
+com\networth\mcp\ToolConfiguration.class
+com\networth\mcp\security\McpApiKeyFilter.class

@@ -1,0 +1,37 @@
+services:
+  mcp-server:
+    image: ${MCP_IMAGE:?Set MCP_IMAGE to a published networth-mcp-server image}
+    environment:
+      SERVER_PORT: 8080
+      MONGO_URI: ${MONGO_URI:?Set the read-only Atlas connection URI}
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp
+    security_opt:
+      - no-new-privileges:true
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: '1.0'
+    networks:
+      - internal
+
+  nginx:
+    image: nginx:1.27-alpine
+    depends_on:
+      - mcp-server
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./certificates:/etc/letsencrypt:ro
+    restart: unless-stopped
+    networks:
+      - internal
+
+networks:
+  internal:
+    driver: bridge

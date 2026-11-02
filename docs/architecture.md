@@ -1,8 +1,10 @@
 # Personal Net Worth Calculator — Architecture Document
 
-### Proposed AI analysis integration
+### AI analysis integration
 
-The [AI portfolio MCP and monitoring plan](ai-portfolio-mcp-plan.md) proposes migrating MongoDB to Atlas Free and deploying a separate stateless Spring Boot/Spring AI MCP service on Oracle Cloud behind Nginx, TLS and a stable DuckDNS hostname. Networth and Hermes remain on the home server. Networth manages owner-scoped API keys; MCP verifies hashed key records and reads permitted data directly from Atlas using a separate read-only database credential. Client-specific OAuth may also be required. This supersedes the earlier embedded-adapter/optional-gateway proposal and is not implemented: existing local MongoDB configuration remains current. Authentication, ownership, migration/restore validation, shared-schema/calculation compatibility and data-quality disclosure are prerequisites.
+The [AI portfolio MCP and monitoring plan](ai-portfolio-mcp-plan.md) is partially implemented. `mcp-server/` is an independently buildable stateless Spring Boot/Spring AI Streamable HTTP application. It verifies hashed, expiring and revocable owner-scoped API keys from MongoDB, and exposes bounded, read-only financial summary, holdings and aggregate-history tools. It has no model key, chat state, portfolio cache, or financial write tool. `deploy/oracle/` provides sanitized Nginx/Docker templates; [MCP client setup](mcp-client-setup.md) covers the Hermes proof target.
+
+The current key-management screen and API deliberately use the existing local dummy owner to support the requested home-host workflow. They must remain private to the trusted home network and must be replaced with verified Google OIDC owner resolution before public access, multi-user support, or a cloud key-management deployment. Atlas migration, reader-role provisioning, Oracle deployment, real Hermes compatibility proof, research, scheduling and notifications are operational follow-up gates, not completed by this source change.
 
 ### Frontend theme
 
