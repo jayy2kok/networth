@@ -1,5 +1,7 @@
 # Personal Net Worth Calculator — Architecture Document
 
+The root Docker Compose configuration connects the backend and MCP service to a remote MongoDB through `MONGO_URI`; `MCP_MONGO_URI` optionally provides separate read-only credentials. The former local MongoDB volume is retained for migration and rollback. Moving configuration does not migrate or validate existing data.
+
 ### AI analysis integration
 
 The [AI portfolio MCP and monitoring plan](ai-portfolio-mcp-plan.md) is partially implemented. `mcp-server/` is an independently buildable stateless Spring Boot/Spring AI Streamable HTTP application. It verifies hashed, expiring and revocable owner-scoped API keys from MongoDB, and exposes bounded, read-only financial summary, holdings and aggregate-history tools. It has no model key, chat state, portfolio cache, or financial write tool. `deploy/oracle/` provides sanitized Nginx/Docker templates; [MCP client setup](mcp-client-setup.md) covers the Hermes proof target.

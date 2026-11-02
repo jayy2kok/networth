@@ -4,11 +4,11 @@ This implementation provides the plan's first client target: Hermes. It is a **r
 
 ## Local development
 
-1. Start the existing Networth backend and MongoDB.
+1. Set `MONGO_URI` in the root `.env` to the remote MongoDB connection URI, including the database name, then start the Networth services. Optionally set `MCP_MONGO_URI` to a separate read-only URI for the same database; otherwise the MCP service uses `MONGO_URI`.
 2. Open **Settings → MCP access**, create a `Hermes` key, and copy the displayed secret once.
 3. Run the standalone service with `MONGO_URI` pointing to the same database:
 
-   `cd mcp-server; $env:MONGO_URI='mongodb://localhost:27017/networth'; mvn spring-boot:run`
+   Set `MONGO_URI` in your shell to the remote URI, then run `mvn spring-boot:run` from `mcp-server/`. Do not commit or share the URI if it contains credentials.
 
 4. Configure Hermes to use `http://localhost:8080/mcp` with an `Authorization: Bearer <copied-key>` header. Store the key in Hermes' secret store, never in a prompt, URL, config committed to Git, or log.
 
