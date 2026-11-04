@@ -1,0 +1,23 @@
+server:
+  port: ${SERVER_PORT:8080}
+spring:
+  application:
+    name: networth-mcp-server
+  data:
+    mongodb:
+      uri: ${MONGO_URI}
+      auto-index-creation: false
+  ai:
+    mcp:
+      server:
+        name: networth-portfolio
+        version: 0.1.0
+        protocol: STATELESS
+        streamable-http:
+          mcp-endpoint: /mcp
+        annotation-scanner:
+          enabled: true
+logging:
+  level:
+    com.networth.mcp: INFO
+    org.springframework.data.mongodb: WARN

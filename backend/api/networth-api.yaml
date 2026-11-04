@@ -44,6 +44,8 @@ tags:
     description: CAS import, mutual fund live pricing, and transaction history
   - name: Zerodha
     description: Kite Connect portfolio synchronization
+  - name: MCP API Keys
+    description: Owner-scoped read-only credentials for the standalone portfolio MCP server
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Security
@@ -63,6 +65,58 @@ components:
   # Schemas
   # ────────────────────────────────────────────────────────────────────────────
   schemas:
+    McpApiKey:
+      type: object
+      required: [id, keyId, label, scopes, expiresAt]
+      properties:
+        id:
+          type: string
+        keyId:
+          type: string
+          description: Public key identifier; not a secret.
+        label:
+          type: string
+        scopes:
+          type: array
+          items:
+            type: string
+        createdAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+        revokedAt:
+          type: string
+          format: date-time
+          nullable: true
+    CreateMcpApiKeyRequest:
+      type: object
+      required: [label, scopes, expiresAt]
+      properties:
+        label:
+          type: string
+          minLength: 1
+          maxLength: 80
+        scopes:
+          type: array
+          minItems: 1
+          items:
+            type: string
+            enum: [financial:summary, portfolio:read, history:read, budget:read]
+        expiresAt:
+          type: string
+          format: date-time
+    CreatedMcpApiKey:
+      type: object
+      required: [key, plaintextKey]
+      properties:
+        key:
+          $ref: '#/components/schemas/McpApiKey'
+        plaintextKey:
+          type: string
+          writeOnly: true
+          description: Show once only. Store in a client secret store.
     # ── Error ─────────────────────────────────────────────────────────────────
     ErrorResponse:
       type: object
@@ -973,6 +1027,55 @@ components:
 # Paths
 # ──────────────────────────────────────────────────────────────────────────────
 paths:
+  /api/mcp-keys:
+    get:
+      tags: [MCP API Keys]
+      operationId: listMcpApiKeys
+      summary: List MCP API key metadata for the current owner
+      responses:
+        '200':
+          description: Key metadata without plaintext secrets
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/McpApiKey'
+    post:
+      tags: [MCP API Keys]
+      operationId: createMcpApiKey
+      summary: Create a show-once read-only MCP API key
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateMcpApiKeyRequest'
+      responses:
+        '201':
+          description: Key created. Save plaintextKey now; it is never returned again.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreatedMcpApiKey'
+        '400':
+          description: Invalid request
+  /api/mcp-keys/{id}:
+    delete:
+      tags: [MCP API Keys]
+      operationId: revokeMcpApiKey
+      summary: Revoke an MCP API key for the current owner
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Key revoked
+        '404':
+          description: Key not found
   /api/zerodha/login-url:
     get:
       tags: [Zerodha]

@@ -8,6 +8,11 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false)
   const [saved,  setSaved]  = useState(false)
   const [err,    setErr]    = useState(null)
+  const [mcpKeys, setMcpKeys] = useState([])
+  const [mcpLabel, setMcpLabel] = useState('Hermes')
+  const [createdMcpKey, setCreatedMcpKey] = useState(null)
+  const [mcpError, setMcpError] = useState(null)
+  const [creatingMcpKey, setCreatingMcpKey] = useState(false)
 
   useEffect(() => {
     if (user?.settings) {
@@ -20,6 +25,16 @@ export default function SettingsPage() {
       })
     }
   }, [user])
+
+  const loadMcpKeys = async () => {
+    try {
+      setMcpKeys(await userApi.listMcpKeys())
+    } catch (e) {
+      setMcpError(e.response?.data?.error || 'Failed to load MCP keys')
+    }
+  }
+
+  useEffect(() => { if (!loading) loadMcpKeys() }, [loading])
 
   const save = async () => {
     setSaving(true); setErr(null); setSaved(false)
@@ -42,6 +57,36 @@ export default function SettingsPage() {
   }
 
   const set = (key) => (e) => setForm(f => ({ ...f, [key]: e.target.value }))
+
+  const createMcpKey = async () => {
+    setCreatingMcpKey(true); setMcpError(null); setCreatedMcpKey(null)
+    try {
+      const expiresAt = new Date()
+      expiresAt.setDate(expiresAt.getDate() + 90)
+      const result = await userApi.createMcpKey({
+        label: mcpLabel,
+        scopes: ['financial:summary', 'portfolio:read', 'history:read', 'budget:read'],
+        expiresAt: expiresAt.toISOString(),
+      })
+      setCreatedMcpKey(result.plaintextKey)
+      await loadMcpKeys()
+    } catch (e) {
+      setMcpError(e.response?.data?.error || 'Failed to create MCP key')
+    } finally {
+      setCreatingMcpKey(false)
+    }
+  }
+
+  const revokeMcpKey = async (id) => {
+    if (!window.confirm('Revoke this MCP key? Existing clients will lose access.')) return
+    setMcpError(null)
+    try {
+      await userApi.revokeMcpKey(id)
+      await loadMcpKeys()
+    } catch (e) {
+      setMcpError(e.response?.data?.error || 'Failed to revoke MCP key')
+    }
+  }
 
   if (loading) return <div className="empty-state"><div className="empty-desc">Loading…</div></div>
 
@@ -98,6 +143,30 @@ export default function SettingsPage() {
             {saving ? 'Saving…' : 'Save Settings'}
           </button>
           {saved && <span className="save-success">✅ Saved!</span>}
+        </div>
+      </div>
+
+      <div className="card" style={{marginBottom:'1rem'}}>
+        <div className="card-title" style={{marginBottom:'0.25rem'}}>MCP access</div>
+        <div className="card-sub">Create a read-only key for Hermes. Store it in Hermes’ secret store; the secret is shown once.</div>
+        <div className="form-grid" style={{marginTop:'1rem'}}>
+          <label className="field-label">Key label
+            <input value={mcpLabel} onChange={e => setMcpLabel(e.target.value)} maxLength="80" />
+          </label>
+        </div>
+        <button className="btn btn-primary" type="button" onClick={createMcpKey} disabled={creatingMcpKey || !mcpLabel.trim()}>
+          {creatingMcpKey ? 'Creating…' : 'Create read-only key'}
+        </button>
+        {createdMcpKey && <div className="alert success" role="status" style={{marginTop:'1rem'}}>
+          <strong>Copy now — this key will not be shown again.</strong>
+          <code style={{display:'block', overflowWrap:'anywhere', marginTop:'0.5rem'}}>{createdMcpKey}</code>
+        </div>}
+        {mcpError && <div className="alert error" role="alert" style={{marginTop:'1rem'}}>{mcpError}</div>}
+        <div style={{marginTop:'1rem'}}>
+          {mcpKeys.length === 0 ? <div className="empty-desc">No MCP keys yet.</div> : mcpKeys.map(key => <div key={key.id} className="list-row">
+            <div><strong>{key.label}</strong><div className="card-sub">{key.keyId} · expires {new Date(key.expiresAt).toLocaleDateString()}</div></div>
+            {key.revokedAt ? <span className="badge">Revoked</span> : <button className="btn btn-ghost" type="button" onClick={() => revokeMcpKey(key.id)}>Revoke</button>}
+          </div>)}
         </div>
       </div>
 
