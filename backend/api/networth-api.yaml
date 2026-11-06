@@ -46,6 +46,8 @@ tags:
     description: Kite Connect portfolio synchronization
   - name: MCP API Keys
     description: Owner-scoped read-only credentials for the standalone portfolio MCP server
+  - name: News Analyzer
+    description: Portfolio-relevant RSS, HTML and NSE corporate-action news with evidence-grounded AI hypotheses
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Security
@@ -990,6 +992,88 @@ components:
           nullable: true
           description: Warning message if any issue occurred for this scheme
 
+    # ── News Analyzer ──────────────────────────────────────────────────────
+    NewsArticle:
+      type: object
+      properties:
+        id:
+          type: string
+        source:
+          type: string
+          example: Moneycontrol
+        title:
+          type: string
+        link:
+          type: string
+          format: uri
+        summary:
+          type: string
+          description: Feed-provided summary; may be empty
+        publishedAt:
+          type: string
+          format: date-time
+        fetchedAt:
+          type: string
+          format: date-time
+        expiresAt:
+          type: string
+          format: date-time
+          description: Retention cutoff; ignored while pinned is true
+        pinned:
+          type: boolean
+        relevanceScore:
+          type: integer
+        matchedHoldings:
+          type: array
+          items:
+            type: string
+        matchedTopics:
+          type: array
+          items:
+            type: string
+        analysisStatus:
+          type: string
+          enum: [PENDING, COMPLETED, NOT_CONFIGURED, PAYWALLED, FAILED]
+        analysisSummary:
+          type: string
+        sentiment:
+          type: string
+          enum: [BULLISH, BEARISH, NEUTRAL]
+        affectedHoldings:
+          type: array
+          items:
+            $ref: '#/components/schemas/AffectedHolding'
+        evidence:
+          type: array
+          description: Short quotes or paraphrases from the source article
+          items:
+            type: string
+        caveats:
+          type: string
+        errorMessage:
+          type: string
+
+    AffectedHolding:
+      type: object
+      properties:
+        holding:
+          type: string
+        stance:
+          type: string
+          enum: [BUY, HOLD, SELL]
+        hypothesis:
+          type: string
+        horizon:
+          type: string
+          example: 1-5 years
+
+    PinNewsRequest:
+      type: object
+      required: [pinned]
+      properties:
+        pinned:
+          type: boolean
+
   # ──────────────────────────────────────────────────────────────────────────
   # Reusable Responses
   # ──────────────────────────────────────────────────────────────────────────
@@ -1027,6 +1111,61 @@ components:
 # Paths
 # ──────────────────────────────────────────────────────────────────────────────
 paths:
+  /api/news:
+    get:
+      tags: [News Analyzer]
+      operationId: getNews
+      summary: List recent and pinned portfolio news
+      responses:
+        '200':
+          description: News within the retention window plus pinned items
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/NewsArticle'
+  /api/news/{id}:
+    patch:
+      tags: [News Analyzer]
+      operationId: pinNewsArticle
+      summary: Pin or unpin a news article
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PinNewsRequest'
+      responses:
+        '200':
+          description: Updated article
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NewsArticle'
+        '404':
+          description: Article not found
+  /api/news/refresh:
+    post:
+      tags: [News Analyzer]
+      operationId: refreshNews
+      summary: Start a background news fetch and analysis run
+      responses:
+        '202':
+          description: Refresh started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  started:
+                    type: boolean
   /api/mcp-keys:
     get:
       tags: [MCP API Keys]

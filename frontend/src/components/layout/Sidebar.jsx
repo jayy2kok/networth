@@ -27,6 +27,7 @@ import { NavLink } from 'react-router-dom'
 const MAIN_NAV = [
   { to: '/',            icon: 'dashboard', label: 'Dashboard', end: true },
   { to: '/investments', icon: 'chart', label: 'Investments' },
+  { to: '/news',        icon: 'news',  label: 'News Analyzer' },
   { to: '/assets',      icon: 'home', label: 'Assets' },
   { to: '/liabilities', icon: 'card', label: 'Liabilities' },
   { to: '/budget',      icon: 'budget', label: 'Budget' },
@@ -40,6 +41,7 @@ const ACCOUNT_NAV = [
 const ICONS = {
   dashboard: <><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></>,
   chart: <><path d="M3 3v18h18" /><path d="m7 15 4-4 3 3 6-7" /></>,
+  news: <><path d="M4 5h13a3 3 0 0 1 3 3v11H7a3 3 0 0 1-3-3z" /><path d="M8 9h8M8 13h8M8 17h5" /></>,
   home: <><path d="m3 10 9-7 9 7v10H3z" /><path d="M9 20v-6h6v6" /></>,
   card: <><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3 10h18M7 15h3" /></>,
   budget: <><rect x="4" y="3" width="16" height="18" rx="2" /><path d="M8 7h8M8 11h2m4 0h2M8 15h2m4 0h2" /></>,

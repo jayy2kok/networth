@@ -5,6 +5,7 @@ import { NavIcon } from './Sidebar'
 const PAGE_META = {
   '/':            { title: 'Dashboard',   sub: 'Net worth, FIRE progress & financial overview' },
   '/investments': { title: 'Investments', sub: 'Portfolio performance & allocation' },
+  '/news':        { title: 'News Analyzer', sub: 'Portfolio news, evidence & 1–5 year hypotheses' },
   '/assets':      { title: 'Assets',      sub: 'Physical assets & real estate' },
   '/liabilities': { title: 'Liabilities', sub: 'Loans, EMIs & outstanding debt' },
   '/budget':      { title: 'Budget',      sub: 'Income, expenses & savings breakdown' },

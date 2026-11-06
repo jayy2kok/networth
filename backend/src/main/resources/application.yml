@@ -45,3 +45,35 @@ nav:
   refresh:
     initial-delay-ms: ${NAV_REFRESH_INITIAL_DELAY_MS:600000}
     fixed-delay-ms:   ${NAV_REFRESH_FIXED_DELAY_MS:21600000}
+
+# ── Portfolio News Analyzer ───────────────────────────────────────────────────
+news:
+  retention-days: ${NEWS_RETENTION_DAYS:7}
+  max-articles-per-run: ${NEWS_MAX_ARTICLES_PER_RUN:20}
+  max-article-characters: ${NEWS_MAX_ARTICLE_CHARS:6000}
+  min-article-characters: ${NEWS_MIN_ARTICLE_CHARS:300}
+  request-timeout-ms: ${NEWS_REQUEST_TIMEOUT_MS:15000}
+  refresh-cron: ${NEWS_REFRESH_CRON:0 0 8 * * *}
+  feeds:
+    - name: Moneycontrol
+      type: RSS
+      url: ${NEWS_FEED_MONEYCONTROL:https://www.moneycontrol.com/rss/latestnews.xml}
+      enabled: true
+    - name: Livemint
+      type: RSS
+      url: ${NEWS_FEED_LIVEMINT:https://www.livemint.com/rss/markets}
+      enabled: true
+    - name: Zerodha Pulse
+      type: HTML
+      url: ${NEWS_FEED_PULSE:https://pulse.zerodha.com/}
+      enabled: true
+    - name: NSE Corporate Actions
+      type: NSE_CORPORATE_ACTIONS
+      url: ${NEWS_FEED_NSE:https://www.nseindia.com/api/corporate-actions?index=equities}
+      enabled: true
+  ai:
+    base-url: ${NEWS_AI_BASE_URL:}
+    model: ${NEWS_AI_MODEL:gpt-4o-mini}
+    api-key: ${NEWS_AI_API_KEY:}
+    temperature: ${NEWS_AI_TEMPERATURE:0.2}
+    timeout-ms: ${NEWS_AI_TIMEOUT_MS:60000}
